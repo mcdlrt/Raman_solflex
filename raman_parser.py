@@ -10,6 +10,9 @@ import pandas as pd
 from scipy.optimize import curve_fit 
 
 class raman_spectrum:
+    def lorentzian(x,x0,a,gam):
+        return a * gam**2 / ( gam**2 + ( x - x0 )**2)
+            
     def __init__(self,filename,wn_min,wn_max):
         try:
             with open(filename,'rU') as f:
@@ -26,6 +29,6 @@ class raman_spectrum:
     def __fit__(self):
         x = self.data.index[(self.data.index>=sel.wn_min)&(self.data.index<=self.wn_max)]
         y = self.data.counts[self.wn_min,self.wn_max]
-        self.fit = curve_fit(__lorentzian__,x,y)
-    def __lorentzian__(x,x0,a,gam):
-        return a * gam**2 / ( gam**2 + ( x - x0 )**2)
+        p0 = []
+        self.fit = curve_fit(self.lorentzian,x,y,p0)
+    
