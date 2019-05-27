@@ -28,6 +28,9 @@ class raman_spectrum:
         x (float array): wave number array used for fit
         y (flaat array): counts number used for fit
     
+    Methods :
+        fit : fit a lorentziand function to the experimental datas
+    
     
     """
     def lorentzian(x,x0,a,gam,c):
