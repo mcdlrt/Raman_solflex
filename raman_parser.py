@@ -50,8 +50,14 @@ class raman_spectrum:
             pass
             
     def __fit__(self):
+        """function used to fit raman data with a lorenztian curve
+        """
         self.x = self.data.index[(self.data.index>=sel.wn_min)&(self.data.index<=self.wn_max)]
         self.y = self.data.counts[self.wn_min,self.wn_max]
         p0 = []
         self.fit = curve_fit(self.lorentzian,x,y,p0)
+    
+    def __plot__(self,output_folder):
+        """Method to plot experimental data and fit results in a choosen folder
+        """
     
