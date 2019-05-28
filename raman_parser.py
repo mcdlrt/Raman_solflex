@@ -8,6 +8,9 @@ Created on Tue May 21 10:33:34 2019
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit 
+import matplotlib.pyplot as plt
+import os
+import time
 #test
 class raman_spectrum:
     """parse and fit .txt single silicon raman spectrum from a horiba Raman spectrometer
@@ -34,7 +37,7 @@ class raman_spectrum:
     
     
     """
-    def lorentzian(x,x0,a,gam,c):
+    def lorentzian(self,x,x0,a,gam,c):
         return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
             
     def __init__(self,filename,wn_min=480,wn_max=560):
@@ -43,7 +46,8 @@ class raman_spectrum:
             self.data = pd.read_csv(self.filename,header = 35, sep = '\t',names = ['wavenumber','counts'],index_col = 0 )
             self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 35,names = ["parameter","value"],engine ='python')
             self.wn_min = wn_min
-            self.wn_max = wn_max 
+            self.wn_max = wn_max
+            self.epoch = time.mktime(time.strptime(self.header.value[34],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
                 
         except IOError:
             print("file {} not found!".format(filename))
@@ -53,11 +57,19 @@ class raman_spectrum:
         """function used to fit raman data with a lorenztian curve
         """
         self.x = self.data.index[(self.data.index>=self.wn_min)&(self.data.index<=self.wn_max)].values
-        self.y = self.data.counts[self.wn_min:self.wn_max].values
+        self.y = self.data.counts[self.wn_min:self.wn_max].values / float(self.header.value[0])         # counts per second
+        
         self.p0 = [self.x[self.y.argmax()], 1,2,0]     # initial values for fit parameters
-        self.fit_data = curve_fit(self.lorentzian,self.x,self.y,p0)
+        [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x,self.y,self.p0)
     
-    def plot(self,output_folder):
+    def plot(self,output_folder= os.getcwd):
         """Method to plot experimental data and fit results in a choosen folder
         """
+        self.fit()
+        fig1 = plt.figure()
+        plt.plot(self.x,self.y,'bo')
+        plt.plot(self.x , self.lorentzian(self.x,self.popt[0],self.popt[1],self.popt[2],self.popt[3]))
+        plt.xlabel('Wave number $cm^{-1}$')
+        plt.ylabel('Counts per second')
+        plt.show()
 
