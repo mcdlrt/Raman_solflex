@@ -30,6 +30,7 @@ class raman_spectrum:
     
     Methods :
         fit : fit a lorentziand function to the experimental datas
+        plot: plot experimental data and fit results
     
     
     """
@@ -37,27 +38,26 @@ class raman_spectrum:
         return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
             
     def __init__(self,filename,wn_min=480,wn_max=560):
-        try:
-            with open(filename,'rU') as f: # 
-                self.filename = f
-                self.data = pd.read_csv(f,header = 35, sep = '\t',names = ['wavenumber','counts'],index_col = 0 )
-                self.header = pd.read_csv(f,sep = '=\t',nrows = 35,names = ["parameter","value"],engine ='python')
-                self.wn_min = wn_min
-                self.wn_max = wn_max 
+        try: 
+            self.filename = filename
+            self.data = pd.read_csv(self.filename,header = 35, sep = '\t',names = ['wavenumber','counts'],index_col = 0 )
+            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 35,names = ["parameter","value"],engine ='python')
+            self.wn_min = wn_min
+            self.wn_max = wn_max 
                 
         except IOError:
             print("file {} not found!".format(filename))
             pass
             
-    def __fit__(self):
+    def fit(self):
         """function used to fit raman data with a lorenztian curve
         """
-        self.x = self.data.index[(self.data.index>=sel.wn_min)&(self.data.index<=self.wn_max)]
-        self.y = self.data.counts[self.wn_min,self.wn_max]
-        p0 = []
-        self.fit = curve_fit(self.lorentzian,x,y,p0)
+        self.x = self.data.index[(self.data.index>=self.wn_min)&(self.data.index<=self.wn_max)].values
+        self.y = self.data.counts[self.wn_min:self.wn_max].values
+        self.p0 = [self.x[self.y.argmax()], 1,2,0]     # initial values for fit parameters
+        self.fit_data = curve_fit(self.lorentzian,self.x,self.y,p0)
     
-    def __plot__(self,output_folder):
+    def plot(self,output_folder):
         """Method to plot experimental data and fit results in a choosen folder
         """
-    
+
