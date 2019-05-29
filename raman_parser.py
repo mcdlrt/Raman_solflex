@@ -29,7 +29,7 @@ class raman_spectrum:
         wn_min (float,default = 480): lower wave number limit in cm^-1 
         wn_max (float,default = 560): higher wave number limit in cm^-1
         x (float array): wave number array used for fit
-        y (flaat array): counts number used for fit
+        y (flaat array): counts/s number used for fit
     
     Methods :
         fit : fit a lorentziand function to the experimental datas
@@ -40,7 +40,7 @@ class raman_spectrum:
     def lorentzian(self,x,x0,a,gam,c):
         return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
             
-    def __init__(self,filename,wn_min=480,wn_max=560):
+    def __init__(self,filename,wn_min=490,wn_max=550):
         try: 
             self.filename = filename
             self.data = pd.read_csv(self.filename,header = 35, sep = '\t',names = ['wavenumber','counts'],index_col = 0 )
