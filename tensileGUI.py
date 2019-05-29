@@ -16,7 +16,7 @@ class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(parent=None, title='Raman_tensileGUI')
         panel = wx.Panel(self)        
-        my_sizer = wx.BoxSizer(wx.HORIZONTAL)        
+        my_sizer = wx.BoxSizer(wx.VERTICAL)        
         self.text_ctrl = wx.TextCtrl(panel)
         my_sizer.Add(self.text_ctrl, 0, wx.ALL | wx.EXPAND, 5)        
         my_btn = wx.Button(panel, label='Load files')
