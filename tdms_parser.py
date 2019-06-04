@@ -6,10 +6,9 @@ Created on Wed May 29 11:55:36 2019
 """
 
 import os
-import npTDMS
 from nptdms import TdmsFile
 import matplotlib.pyplot as plt
-import scipy as sp
+import scipy as sps
 import numpy as np
 
 class tdms_file:
@@ -22,7 +21,11 @@ class tdms_file:
         self.group = u'Traction / Compression'
         self.time = self.file.object(self.group, u'Temps (s)').data   #fr Temps
         self.speed = self.file.object(self.group, u'Vitesse (µm/s)').data
-        self.allongement = self.file.object(self.group, u'Allongement (µm)').data
+        self.elongation = self.file.object(self.group, u'Allongement (µm)').data
         self.force = self.file.object(self.group, u'Force (N)').data
         self.stress = self.file.object(self.group, u'Contrainte (Mpa)').data
         self.deformation = self.file.object(self.group, u'Déformation (%)').data
+    
+    def plot(self, a, b):
+            
+    
