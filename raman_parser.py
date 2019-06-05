@@ -14,7 +14,7 @@ import time
 #test
 
 class raman_mapping_z :
-    """Parse and fit xy Silion Raman mapping
+    """Parse and fit xy Silion Raman z scan
     Uses a lsq method to fit a lorentzian curve
     
     Args :
@@ -42,13 +42,39 @@ class raman_mapping_z :
             wn = self.data.columns[1:]
             self.wn = np.array([float(iii) for iii in wn])
             self.z = self.data.index
+            self.id_min = np.argmax(self.wn>wn_min)
+            self.id_max = np.argmin(self.wn<wn_max)
         except IOError:
             print("file {} not found!".format(filename))
             pass
+        
     def lorentzian(self,x,x0,a,gam,c):
         return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
-    def fit(self,z):
-          print('')      
+    def fit(self,iii,p0 = [520,1,2,0]):
+          self.x_fit = self.wn[self.id_min:self.id_max]
+          self.y_fit = self.data.values[iii,self.id_min:self.id_max]
+          self.p0 = p0
+          [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0)
+          self.peak_pos = self.popt[0]
+          
+    def fit_zscan(self):
+        peak_shift_array = np.zeros_like(self.z)
+        peak_intensity_array = np.zeros_like(self.z)
+        for iii,z_i in enumerate(self.z) :
+            try :
+                self.fit()
+                peak_shift_array = self.peak_pos
+                peak_shift_array = self.popt[1]
+            except RuntimeError:
+                peak_shift_array[iii] = np.nan
+                peak_intensity_array[iii] =np.nan
+        self.peak_shift_array = peak_shift_array
+        self.peak_intensity_array = peak_intensity_array
+        
+    def plot_zscan(self):
+        self.fit_zscan()
+        plt.figure()
+        plt.plot(self.z, self.peak_intensity_array,'o')
 class raman_mapping_xy :
     """Parse and fit xy Silion Raman mapping
     Uses a lsq method to fit a lorentzian curve
@@ -73,7 +99,7 @@ class raman_mapping_xy :
         self.ref_si = ref_si
         self.cmap = cmap
         try :
-            self.data = pd.read_csv(self.filename,header = 34, sep = '\t')
+            self.data = pd.read_csv(self.filename,header = 35, sep = '\t')
             self.data.rename(columns = {'Unnamed: 0':'x','Unnamed: 1':'y'},inplace=True)
             self.data.rename(columns={c: float(c) for c in self.data.columns[2:]})
             
@@ -177,7 +203,7 @@ class raman_mapping_xy :
         self.strain_biax()
         fig = plt.figure()
         plt.imshow(self.eps_biax,cmap=self.cmap
-                        ,vmin = -5, vmax = 5
+                        #,vmin = -5, vmax = 5
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
                         
         plt.colorbar()
@@ -221,7 +247,7 @@ class raman_spectrum:
             self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 35,names = ["parameter","value"],engine ='python')
             self.wn_min = wn_min
             self.wn_max = wn_max
-            self.epoch = time.mktime(time.strptime(self.header.value[34],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
+            #self.epoch = time.mktime(time.strptime(self.header.value[34],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
                 
         except IOError:
             print("file {} not found!".format(filename))
@@ -235,6 +261,7 @@ class raman_spectrum:
         
         self.p0 = [self.x[self.y.argmax()], 1,2,0]     # initial values for fit parameters
         [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x,self.y,self.p0)
+        self.peak_pos = self.popt[0]
     
     def plot(self,output_folder= os.getcwd):
         """Method to plot experimental data and fit results in a choosen folder
