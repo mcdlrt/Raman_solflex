@@ -13,7 +13,43 @@ import os
 import time
 #test
 
-class raman_mapping:
+class raman_mapping_z :
+    """Parse and fit xy Silion Raman mapping
+    Uses a lsq method to fit a lorentzian curve
+    
+    Args :
+        filename (str): .txt filename created by sofware Labspec...
+        wn_min (float,default = 480): lower wave number limit in cm^-1 
+        wn_max (float,default = 560): higher wave number limit in cm^-1
+    
+    Attributes : 
+        x
+        y
+        peak_pos
+    
+    Methods : 
+        
+    """
+    def __init__(self, filename,wn_min=490,wn_max=550,ref_si = 520.7,cmap = 'coolwarm'):
+        self.filename = filename
+        self.wn_min = wn_min
+        self.wn_max = wn_max
+        self.ref_si = ref_si
+        try : 
+            self.data = pd.read_csv(self.filename,header = 35, sep = '\t',index_col = 0)
+            self.data.rename(columns = {'Unnamed: 0':'z'},inplace=True)
+            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 34,names = ["parameter","value"],engine ='python')
+            wn = self.data.columns[1:]
+            self.wn = np.array([float(iii) for iii in wn])
+            self.z = self.data.index
+        except IOError:
+            print("file {} not found!".format(filename))
+            pass
+    def lorentzian(self,x,x0,a,gam,c):
+        return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
+    def fit(self,z):
+          print('')      
+class raman_mapping_xy :
     """Parse and fit xy Silion Raman mapping
     Uses a lsq method to fit a lorentzian curve
     
