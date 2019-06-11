@@ -12,6 +12,7 @@ import scipy as sps
 import numpy as np
 
 class tdms_file:
+    
     def __init__(self,filename):
         self.filename = filename
         self.ctime = os.path.getctime(self.filename)
@@ -27,5 +28,10 @@ class tdms_file:
         self.deformation = self.file.object(self.group, u'Déformation (%)').data
     
     def plot(self, a, b):
-            
+        fig = plt.figure()
+        plt.plot(getattr(self, a),getattr(self, b),'bo')
+        plt.xlabel()
+        plt.ylabel()
+        plt.show()
+        
     
