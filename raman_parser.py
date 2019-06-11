@@ -44,6 +44,15 @@ class raman_mapping_z :
             self.z = self.data.index
             self.id_min = np.argmax(self.wn>wn_min)
             self.id_max = np.argmin(self.wn<wn_max)
+        except IndexError:
+            self.data = pd.read_csv(self.filename,header = 36, sep = '\t',index_col = 0)
+            self.data.rename(columns = {'Unnamed: 0':'z'},inplace=True)
+            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 34,names = ["parameter","value"],engine ='python')
+            wn = self.data.columns[1:]
+            self.wn = np.array([float(iii) for iii in wn])
+            self.z = self.data.index
+            self.id_min = np.argmax(self.wn>wn_min)
+            self.id_max = np.argmin(self.wn<wn_max)
         except IOError:
             print("file {} not found!".format(filename))
             pass
@@ -58,13 +67,13 @@ class raman_mapping_z :
           self.peak_pos = self.popt[0]
           
     def fit_zscan(self):
-        peak_shift_array = np.zeros_like(self.z)
-        peak_intensity_array = np.zeros_like(self.z)
+        peak_shift_array = np.zeros(self.z.size)
+        peak_intensity_array = np.zeros(self.z.size)
         for iii,z_i in enumerate(self.z) :
             try :
-                self.fit()
-                peak_shift_array = self.peak_pos
-                peak_shift_array = self.popt[1]
+                self.fit(iii)
+                peak_shift_array[iii] = self.peak_pos
+                peak_intensity_array[iii] = self.popt[1]
             except RuntimeError:
                 peak_shift_array[iii] = np.nan
                 peak_intensity_array[iii] =np.nan
@@ -74,7 +83,10 @@ class raman_mapping_z :
     def plot_zscan(self):
         self.fit_zscan()
         plt.figure()
-        plt.plot(self.z, self.peak_intensity_array,'o')
+        plt.plot(self.z, self.peak_intensity_array,'ko')
+        plt.xlabel("z (um)")
+        plt.ylabel("raman shift intsity (cts/s)")
+        plt.show()
 class raman_mapping_xy :
     """Parse and fit xy Silion Raman mapping
     Uses a lsq method to fit a lorentzian curve
