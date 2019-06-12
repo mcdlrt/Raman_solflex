@@ -13,8 +13,87 @@ import os
 import time
 #test
 
+class raman_time_scan:
+    """Parse and fit Time scan for Si Raman measurement 
+    """
+    def __init__(self,filename,wn_min=490,wn_max=550,ref_si = 520.7):
+        self.filename = filename
+        self.wn_min = wn_min
+        self.wn_max = wn_max
+        self.ref_si = ref_si
+        for iii in np.array([34,35,36,37]):
+            try :
+                print(iii)
+                self.data = pd.read_csv(self.filename,header = iii, sep = '\t',index_col = 0) #
+                self.data.rename(columns = {'Unnamed: 0':'time'},inplace=True)
+                self.header = pd.read_csv(self.filename,sep = '=\t',nrows = iii,names = ["parameter","value"],engine ='python')
+                wn = self.data.columns[1:]
+                self.wn = np.array([float(jjj) for jjj in wn])
+                self.time = self.data.index
+                self.id_min = np.argmax(self.wn>wn_min)
+                self.id_max = np.argmin(self.wn<wn_max)
+                self.epoch = time.mktime(time.strptime(self.header.value[iii-1],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
+                self.time_epoch = self.time + self.epoch
+                break
+            except IOError:
+                print("file {} not found!".format(filename))
+                pass
+            except pd.errors.ParserError : 
+                print("Parsing error")
+            except IndexError:
+                print('index error')
+                
+            
+    def lorentzian(self,x,x0,a,gam,c):
+        """Lorentzian method
+        Args : 
+            x =
+            x0 = 
+            a =
+            gam = 
+            x = 
+        Return : 
+        """
+        return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
+
+    def fit_tscan(self):
+        """Method to fit silicon raman peak as a function of time
+        Attributes :
+            peak_shift_array =
+            peak_intensity_array = 
+            surf_z = 
+            fit = 
+        """
+        peak_shift_array = np.zeros(self.time.size)
+        peak_intensity_array = np.zeros(self.time.size)
+        for iii,t_i in enumerate(self.time) :
+            try :
+                self.fit(iii)
+                peak_shift_array[iii] = self.peak_pos
+                peak_intensity_array[iii] = self.popt[1]
+            except RuntimeError:
+                peak_shift_array[iii] = np.nan
+                peak_intensity_array[iii] =np.nan
+        self.peak_shift_array = peak_shift_array
+        self.peak_intensity_array = peak_intensity_array
+        
+    def fit(self,iii,p0 = [520,1,2,0],bounds_f=([500,0,0,0],[540,1000,10,100])):
+          self.x_fit = self.wn[self.id_min:self.id_max]
+          self.y_fit = self.data.values[iii,self.id_min:self.id_max]
+          self.p0 = p0
+          [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
+          self.peak_pos = self.popt[0]
+          
+    def plot_tscan(self):
+        self.fit_tscan()
+        plt.figure()
+        plt.plot(self.time, self.peak_shift_array,'ko')
+        plt.xlabel("time (s)")
+        plt.ylabel("raman shift $cm^{-1}$")
+        plt.show()
+    
 class raman_mapping_z :
-    """Parse and fit xy Silion Raman z scan
+    """Parse and fit  Silion Raman z scan
     Uses a lsq method to fit a lorentzian curve
     
     Args :
@@ -51,12 +130,13 @@ class raman_mapping_z :
         except IndexError:
             self.data = pd.read_csv(self.filename,header = 36, sep = '\t',index_col = 0)
             self.data.rename(columns = {'Unnamed: 0':'z'},inplace=True)
-            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 34,names = ["parameter","value"],engine ='python')
+            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 35,names = ["parameter","value"],engine ='python')
             wn = self.data.columns[1:]
             self.wn = np.array([float(iii) for iii in wn])
             self.z = self.data.index
             self.id_min = np.argmax(self.wn>wn_min)
             self.id_max = np.argmin(self.wn<wn_max)
+            pass
         except IOError:
             print("file {} not found!".format(filename))
             pass
@@ -72,11 +152,12 @@ class raman_mapping_z :
         Return : 
         """
         return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
-    def fit(self,iii,p0 = [520,1,2,0]):
+    
+    def fit(self,iii,p0 = [520,1,2,0],bounds_f=([500,0,0,0],[540,1000,10,100])):
           self.x_fit = self.wn[self.id_min:self.id_max]
           self.y_fit = self.data.values[iii,self.id_min:self.id_max]
           self.p0 = p0
-          [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0)
+          [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
           self.peak_pos = self.popt[0]
           
     def fit_zscan(self):
@@ -153,7 +234,7 @@ class raman_mapping_xy :
     def lorentzian(self,x,x0,a,gam,c):
         return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
         
-    def fit(self,iii,jjj,p0 = [520,1,2,0]):
+    def fit(self,iii,jjj,p0 = [520,1,2,0],bounds_f=([500,0,0,0],[540,1000,10,100])):
         """Method used to fit raman data with a lorenztian curve
         Args :
             iii (int): x indices
@@ -163,7 +244,7 @@ class raman_mapping_xy :
         self.y_fit = self.data.values[iii*np.size(self.y)+jjj,self.id_min:self.id_max] / float(self.header.value[0])         # counts per second
         
         self.p0 = p0
-        [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0)
+        [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
         self.peak_pos = self.popt[0]
         
     def fit_map(self):

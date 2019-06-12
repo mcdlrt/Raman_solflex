@@ -38,6 +38,7 @@ class tdms_file:
         plt.xlabel()
         plt.ylabel()
         plt.show()
+        
     def set_epoch_time(self):
         self.epoch_time = self.time+self.mtime - self.time[-1]
         
