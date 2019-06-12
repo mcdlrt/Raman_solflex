@@ -26,9 +26,13 @@ class raman_mapping_z :
         x
         y
         peak_pos
-    
+        peak_shift_array (np.array) : Silicon Raman shift array from the fit
+        peak_intensity_array (np.array) : Intensity of the silicon Raman peak
+       surf_z (float) : Relative z coordinate of the silicon surface, correponds to the max intensity of Silicon Raman peak /!\ if the surface is not in focus range, surf_z will correpsond to an extremmum
     Methods : 
-        
+        fit = 
+        fit_zscan : fit a spectrum of the corresponding index to a lorentzian curve
+        plot_zscan =: plot Raman peak intensity as a function of scan relative z coordinates
     """
     def __init__(self, filename,wn_min=490,wn_max=550,ref_si = 520.7,cmap = 'coolwarm'):
         self.filename = filename
@@ -58,6 +62,15 @@ class raman_mapping_z :
             pass
         
     def lorentzian(self,x,x0,a,gam,c):
+        """Lorentzian method
+        Args : 
+            x =
+            x0 = 
+            a =
+            gam = 
+            x = 
+        Return : 
+        """
         return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
     def fit(self,iii,p0 = [520,1,2,0]):
           self.x_fit = self.wn[self.id_min:self.id_max]
@@ -67,6 +80,13 @@ class raman_mapping_z :
           self.peak_pos = self.popt[0]
           
     def fit_zscan(self):
+        """Method to fit silicon raman peak as a function of scan depth
+        Attributes :
+            peak_shift_array =
+            peak_intensity_array = 
+            surf_z = 
+            fit = 
+        """
         peak_shift_array = np.zeros(self.z.size)
         peak_intensity_array = np.zeros(self.z.size)
         for iii,z_i in enumerate(self.z) :
@@ -79,6 +99,7 @@ class raman_mapping_z :
                 peak_intensity_array[iii] =np.nan
         self.peak_shift_array = peak_shift_array
         self.peak_intensity_array = peak_intensity_array
+        self.surf_z = self.z[self.peak_intensity_array.argmax()]
         
     def plot_zscan(self):
         self.fit_zscan()
@@ -100,7 +121,10 @@ class raman_mapping_xy :
         x
         y
         peak_pos
-    
+        peak_shift_array (np.array) : Matrix of Silicon Raman shift, relative to the Si_ref value
+        eps_110 (np.array) : strain in a case of Si 100 crystal strained along <110> direction
+        eps_100 (np.array) : strain in a case of Si 100 crystal strained along <100> direction
+        eps_biax (np.array) : strain in a case of Si 100 crystal strained biaxialy in a 100 plane
     Methods : 
         
     """
@@ -259,7 +283,15 @@ class raman_spectrum:
             self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 35,names = ["parameter","value"],engine ='python')
             self.wn_min = wn_min
             self.wn_max = wn_max
-            #self.epoch = time.mktime(time.strptime(self.header.value[34],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
+            self.epoch = time.mktime(time.strptime(self.header.value[34],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
+        
+        except TypeError:
+            self.filename = filename
+            self.data = pd.read_csv(self.filename,header = 36, sep = '\t',names = ['wavenumber','counts'],index_col = 0 )
+            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 36,names = ["parameter","value"],engine ='python')
+            self.wn_min = wn_min
+            self.wn_max = wn_max
+            self.epoch = time.mktime(time.strptime(self.header.value[35],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
                 
         except IOError:
             print("file {} not found!".format(filename))
