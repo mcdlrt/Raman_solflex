@@ -16,7 +16,12 @@ class tdms_file:
     def __init__(self,filename):
         self.filename = filename
         self.ctime = os.path.getctime(self.filename)
+        self.mtime = os.path.getmtime(self.filename)
         self.file = TdmsFile(filename)
+        try : 
+            self.readfile()
+        except :
+            print('error')
     
     def readfile(self):
         self.group = u'Traction / Compression'
@@ -33,5 +38,12 @@ class tdms_file:
         plt.xlabel()
         plt.ylabel()
         plt.show()
+    def set_epoch_time(self):
+        self.epoch_time = self.time+self.mtime - self.time[-1]
         
-    
+    def get_elongation(self,r_time,duration):
+        self.set_epoch_time()
+        med_elongation = np.median(self.elongation[(self.epoch_time>r_time) & (self.epoch_time<r_time+duration)])
+        return med_elongation
+        
+        
