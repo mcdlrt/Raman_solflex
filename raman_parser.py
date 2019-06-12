@@ -11,8 +11,20 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import os
 import time
-#test
 
+
+def lorentzian(x,x0,a,gam,c):
+    """Lorentzian method
+    Args : 
+        x =
+        x0 = 
+        a =
+        gam = 
+        x = 
+        Return : 
+    """
+    return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
+        
 class raman_time_scan:
     """Parse and fit Time scan for Si Raman measurement 
     """
@@ -34,6 +46,7 @@ class raman_time_scan:
                 self.id_max = np.argmin(self.wn<wn_max)
                 self.epoch = time.mktime(time.strptime(self.header.value[iii-1],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
                 self.time_epoch = self.time + self.epoch
+                self.duration = float(self.header.value[1])*float(self.header.value[0])
                 break
             except IOError:
                 print("file {} not found!".format(filename))
@@ -42,19 +55,6 @@ class raman_time_scan:
                 print("Parsing error")
             except IndexError:
                 print('index error')
-                
-            
-    def lorentzian(self,x,x0,a,gam,c):
-        """Lorentzian method
-        Args : 
-            x =
-            x0 = 
-            a =
-            gam = 
-            x = 
-        Return : 
-        """
-        return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
 
     def fit_tscan(self):
         """Method to fit silicon raman peak as a function of time
@@ -81,7 +81,7 @@ class raman_time_scan:
           self.x_fit = self.wn[self.id_min:self.id_max]
           self.y_fit = self.data.values[iii,self.id_min:self.id_max]
           self.p0 = p0
-          [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
+          [self.popt, self.pcov] = curve_fit(lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
           self.peak_pos = self.popt[0]
           
     def plot_tscan(self):
@@ -140,24 +140,12 @@ class raman_mapping_z :
         except IOError:
             print("file {} not found!".format(filename))
             pass
-        
-    def lorentzian(self,x,x0,a,gam,c):
-        """Lorentzian method
-        Args : 
-            x =
-            x0 = 
-            a =
-            gam = 
-            x = 
-        Return : 
-        """
-        return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
     
     def fit(self,iii,p0 = [520,1,2,0],bounds_f=([500,0,0,0],[540,1000,10,100])):
           self.x_fit = self.wn[self.id_min:self.id_max]
           self.y_fit = self.data.values[iii,self.id_min:self.id_max]
           self.p0 = p0
-          [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
+          [self.popt, self.pcov] = curve_fit(lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
           self.peak_pos = self.popt[0]
           
     def fit_zscan(self):
@@ -231,8 +219,6 @@ class raman_mapping_xy :
         self.id_min = np.argmax(self.wn>wn_min)
         self.id_max = np.argmin(self.wn<wn_max)
 
-    def lorentzian(self,x,x0,a,gam,c):
-        return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
         
     def fit(self,iii,jjj,p0 = [520,1,2,0],bounds_f=([500,0,0,0],[540,1000,10,100])):
         """Method used to fit raman data with a lorenztian curve
@@ -244,7 +230,7 @@ class raman_mapping_xy :
         self.y_fit = self.data.values[iii*np.size(self.y)+jjj,self.id_min:self.id_max] / float(self.header.value[0])         # counts per second
         
         self.p0 = p0
-        [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
+        [self.popt, self.pcov] = curve_fit(lorentzian,self.x_fit,self.y_fit,p0 = self.p0,bounds=bounds_f)
         self.peak_pos = self.popt[0]
         
     def fit_map(self):
@@ -354,8 +340,6 @@ class raman_spectrum:
     
     
     """
-    def lorentzian(self,x,x0,a,gam,c):
-        return a * gam**2 / ( gam**2 + ( x - x0 )**2)+c
             
     def __init__(self,filename,wn_min=490,wn_max=550):
         try: 
@@ -385,7 +369,7 @@ class raman_spectrum:
         self.y = self.data.counts[self.wn_min:self.wn_max].values / float(self.header.value[0])         # counts per second
         
         self.p0 = [self.x[self.y.argmax()], 1,2,0]     # initial values for fit parameters
-        [self.popt, self.pcov] = curve_fit(self.lorentzian,self.x,self.y,self.p0)
+        [self.popt, self.pcov] = curve_fit(lorentzian,self.x,self.y,self.p0)
         self.peak_pos = self.popt[0]
     
     def plot(self,output_folder= os.getcwd):
@@ -394,7 +378,7 @@ class raman_spectrum:
         self.fit()
         fig1 = plt.figure()
         plt.plot(self.x,self.y,'bo')
-        plt.plot(self.x , self.lorentzian(self.x,self.popt[0],self.popt[1],self.popt[2],self.popt[3]))
+        plt.plot(self.x , lorentzian(self.x,self.popt[0],self.popt[1],self.popt[2],self.popt[3]))
         plt.xlabel('Wave number $cm^{-1}$')
         plt.ylabel('Counts per second')
         plt.show()

@@ -18,11 +18,13 @@ class tdms_file:
         self.ctime = os.path.getctime(self.filename)
         self.mtime = os.path.getmtime(self.filename)
         self.file = TdmsFile(filename)
+        
         try : 
             self.readfile()
         except :
             print('error')
-    
+        self.set_epoch_time()
+        
     def readfile(self):
         self.group = u'Traction / Compression'
         self.time = self.file.object(self.group, u'Temps (s)').data   #fr Temps
@@ -35,15 +37,14 @@ class tdms_file:
     def plot(self, a, b):
         fig = plt.figure()
         plt.plot(getattr(self, a),getattr(self, b),'bo')
-        plt.xlabel()
-        plt.ylabel()
+        plt.xlabel(a)
+        plt.ylabel(b)
         plt.show()
         
     def set_epoch_time(self):
         self.epoch_time = self.time+self.mtime - self.time[-1]
         
     def get_elongation(self,r_time,duration):
-        self.set_epoch_time()
         med_elongation = np.median(self.elongation[(self.epoch_time>r_time) & (self.epoch_time<r_time+duration)])
         return med_elongation
         
