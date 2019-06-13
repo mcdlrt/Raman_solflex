@@ -121,21 +121,23 @@ class raman_mapping_z :
         try : 
             self.data = pd.read_csv(self.filename,header = 35, sep = '\t',index_col = 0)
             self.data.rename(columns = {'Unnamed: 0':'z'},inplace=True)
-            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 34,names = ["parameter","value"],engine ='python')
-            wn = self.data.columns[1:]
-            self.wn = np.array([float(iii) for iii in wn])
-            self.z = self.data.index
-            self.id_min = np.argmax(self.wn>wn_min)
-            self.id_max = np.argmin(self.wn<wn_max)
-        except IndexError:
-            self.data = pd.read_csv(self.filename,header = 36, sep = '\t',index_col = 0)
-            self.data.rename(columns = {'Unnamed: 0':'z'},inplace=True)
             self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 35,names = ["parameter","value"],engine ='python')
             wn = self.data.columns[1:]
             self.wn = np.array([float(iii) for iii in wn])
             self.z = self.data.index
             self.id_min = np.argmax(self.wn>wn_min)
             self.id_max = np.argmin(self.wn<wn_max)
+            self.epoch = time.mktime(time.strptime(self.header.value[34],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
+        except IndexError:
+            self.data = pd.read_csv(self.filename,header = 36, sep = '\t',index_col = 0)
+            self.data.rename(columns = {'Unnamed: 0':'z'},inplace=True)
+            self.header = pd.read_csv(self.filename,sep = '=\t',nrows = 36,names = ["parameter","value"],engine ='python')
+            wn = self.data.columns[1:]
+            self.wn = np.array([float(iii) for iii in wn])
+            self.z = self.data.index
+            self.id_min = np.argmax(self.wn>wn_min)
+            self.id_max = np.argmin(self.wn<wn_max)
+            self.epoch = time.mktime(time.strptime(self.header.value[35],"%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
             pass
         except IOError:
             print("file {} not found!".format(filename))
