@@ -44,8 +44,12 @@ class tdms_file:
     def set_epoch_time(self):
         self.epoch_time = self.time+self.mtime - self.time[-1]
         
+    def get_value(self,r_time,duration,attr):
+        val = getattr(self,attr)
+        med_val = np.median(val[(self.epoch_time>r_time) & (self.epoch_time<r_time+duration)])
+        return med_val
+    
     def get_elongation(self,r_time,duration):
-        med_elongation = np.median(self.elongation[(self.epoch_time>r_time) & (self.epoch_time<r_time+duration)])
-        return med_elongation
+        return(self.get_value(r_time,duration,'elongation'))
         
         
