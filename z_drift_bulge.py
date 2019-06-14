@@ -20,8 +20,8 @@ surf_z = np.zeros_like(file_index)
 time_array = np.zeros_like(file_index)
 fit_array = np.zeros_like(file_index)
 for iii,el in enumerate(file_index):
-    print("fit {}{}_{:0<1d}.txt".format(filepath,file_prefix,el))
-    r_o =  rp.raman_mapping_z(r"{}\\{}{:0>2d}.txt".format(filepath,file_prefix,el))
+    print("fit {}\\{}{:0>2d}.txt".format(filepath,file_prefix,el))
+    r_o =  rp.raman_mapping_z(r"{}\{}{:0>2d}.txt".format(filepath,file_prefix,el))
     r_o.fit_zscan()
     surf_z[iii] = r_o.surf_z
     time_array[iii] = r_o.epoch
