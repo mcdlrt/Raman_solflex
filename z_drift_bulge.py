@@ -14,8 +14,9 @@ def lin_fun(x,a,b):
 
 filepath = r"S:\300-Projets_Transverses\300.56-Solflex\raman_data\20190605_bulge\txt"
 file_prefix = r"Si_zscan_p0.06_"
+
 file_index = np.array([1,2,3,4,5,6])
-z0 = np.array([0,0,0,0,0,0])
+z0 = np.array([0,0,0,0,0,0])  # ofset
 surf_z = np.zeros_like(file_index)
 time_array = np.zeros_like(file_index)
 fit_array = np.zeros_like(file_index)

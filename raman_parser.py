@@ -233,7 +233,7 @@ class raman_mapping_xy :
             self.data = pd.read_csv(self.filename, header=35, sep='\t')
             self.data.rename(columns={'Unnamed: 0':'x','Unnamed: 1':'y'}, inplace=True)
             self.data.rename(columns={c: float(c) for c in self.data.columns[2:]})
-            self.header = pd.read_csv(self.filename, sep = '=\t', nrows=34, names=["parameter", "value"], engine='python')
+            self.header = pd.read_csv(self.filename, sep = '=\t', nrows=35, names=["parameter", "value"], engine='python')
             wn = self.data.columns[2:]
             self.wn = np.array([float(iii) for iii in wn])    # list of wavenumber
             self.x = self.data.x.unique()                       # x values in µm
@@ -287,23 +287,23 @@ class raman_mapping_xy :
     def strain110(self):
         self.fit_map()
         b_110 = -337
-        self.eps_110 = self.peak_shift_array / b_110
+        self.eps_110 = 100*self.peak_shift_array / b_110
        
     def strain_biax(self) :
         self.fit_map()
         b_biax = -733
-        self.eps_biax = self.peak_shift_array / b_biax
+        self.eps_biax = 100*self.peak_shift_array / b_biax
         
     def strain100(self):
         self.fit_map()
         b_100 = -335.7
-        self.eps_100 = self.peak_shift_array / b_100
+        self.eps_100 = 100*self.peak_shift_array / b_100
         
     def plot_strain110(self):
         self.strain110()
         fig = plt.figure()
         plt.imshow(self.eps_110,cmap=self.cmap
-                        ,vmin = -5, vmax = 5
+                        ,vmin = -3, vmax = 3
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
                         
         plt.colorbar()
@@ -316,7 +316,7 @@ class raman_mapping_xy :
         self.strain100()
         fig = plt.figure()
         plt.imshow(self.eps_100,cmap=self.cmap
-                        ,vmin = -5, vmax = 5
+                        ,vmin = -3, vmax = 3
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
                         
         plt.colorbar()
@@ -329,14 +329,15 @@ class raman_mapping_xy :
         self.strain_biax()
         fig = plt.figure()
         plt.imshow(self.eps_biax,cmap=self.cmap
-                        #,vmin = -5, vmax = 5
+                        ,vmin = -3, vmax = 3
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
                         
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
         plt.title('Biaxial strain %%')
-        plt.show()                
+        plt.show()
+        print("mean biax strain = {:}".format(np.nanmean(self.eps_biax)))                
         
 class raman_spectrum:
     """parse and fit .txt single silicon raman spectrum from a horiba Raman spectrometer
