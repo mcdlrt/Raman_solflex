@@ -6,7 +6,7 @@ Created on Tue Jun 18 10:48:13 2019
 """
 
 import sys
-from PyQt5.QtWidgets import QComboBox, QMainWindow, QAction, qApp, QFileDialog, QApplication, QWidget, QPushButton, QToolTip, QMessageBox, QDesktopWidget
+from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QTextEdit, QGridLayout, QMainWindow, QAction, qApp, QFileDialog, QApplication, QWidget, QPushButton, QToolTip, QMessageBox, QDesktopWidget
 from PyQt5.QtGui import QIcon
 import PyQt5.QtCore
 
@@ -19,6 +19,7 @@ class RamanGUI(QMainWindow):
 
         #textEdit = QTextEdit()
         #self.setCentralWidget(textEdit)
+        self.homedir = 'C:/'
         
         exitAction = QAction(QIcon('test.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -34,24 +35,47 @@ class RamanGUI(QMainWindow):
         self.statusBar()
         self.statusBar().showMessage('Ready')
         
-        tdmsbtn = QPushButton('Open tdms', self)
-        tdmsbtn.clicked.connect(self.openTDMS)
-        tdmsbtn.move(50, 60)
+        '''dirbtn  = QPushButton('Home directory', self)
+        dirbtn.clicked.connect(self.setHomeDir)
+        dirbtn.move(50, 180)'''
         
-        ramanbtn = QPushButton('Open raman', self)
-        ramanbtn.clicked.connect(self.openRaman)
-        ramanbtn.move(50, 100)
+        tdmsedit = QLineEdit()
+        ramanedit = QLineEdit()
+        tdmslabel = QLabel('Open tdms')
+        ramanlabel = QLabel('Open raman')
+        
+        #tdmsedit = QPushButton('Open tdms', self)
+        #tdmsedit.clicked.connect(self.openTDMS)
+        #tdmsedit.move(50, 60)
+        
+        #ramanbtn = QPushButton('Open raman', self)
+        #ramanbtn.clicked.connect(self.openRaman)
+        #ramanbtn.move(50, 100)
+        
+        
+        
+        startbtn = QPushButton('Start!', self)
+        startbtn.clicked.connect(self.start)
+        startbtn.move(550, 450)
         
         combo = QComboBox(self)
         combo.addItems(['110', '100'])
-        combo.move(50, 140)
+        #combo.move(50, 140)
         combo.activated[str].connect(self.crystalorientationset)
-        
-        menubar = self.menuBar()
+        '''menubar = self.menuBar()
         fileMenu = menubar.addMenu('&Menu')
-        fileMenu.addAction(exitAction)
+        fileMenu.addAction(exitAction)'''
+    
+        grid = QGridLayout()
+        grid.setSpacing(10)
+        grid.addWidget(tdmslabel, 1, 2)
+        grid.addWidget(tdmsedit, 1, 1)
+        grid.addWidget(ramanlabel, 2, 0)
+        grid.addWidget(ramanedit, 2, 1)
+        grid.addWidget(combo, 3, 1)
+        self.setLayout(grid)
         
-        self.setGeometry(300, 300, 500, 350)
+        self.setGeometry(300, 300, 700, 500)
         self.setWindowTitle('TestGUI')    
         self.show()
         
@@ -66,6 +90,12 @@ class RamanGUI(QMainWindow):
             sys.exit(app.exec_())
         else:
             event.ignore()
+   
+    def setHomeDir(self, event):
+        self.homedir = QFileDialog.getExistingDirectory(self, "Open Directory", 
+        "C:/", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        print(self.homedir)
+        
         
     def openTDMS(self, event):
         self.tdms_file = QFileDialog(self).getOpenFileName(self, "Tensile stage data", "C:/", "TDMS files (*.tdms)")
@@ -74,9 +104,12 @@ class RamanGUI(QMainWindow):
         self.raman_file = QFileDialog(self).getOpenFileName(self, "Raman data", "C:/", "TXT files (*.txt)")
     
     def crystalorientationset(self, text):
-        self.crystalorientation = text;
-        print(self.crystalorientation);
-        
+        self.crystalorientation = text
+        print(self.crystalorientation)
+    
+    def start(self, event):
+        print('START!')
+    
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setAttribute(PyQt5.QtCore.Qt.AA_DontShowIconsInMenus, False)
