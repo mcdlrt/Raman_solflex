@@ -16,13 +16,15 @@ root.withdraw()
 
 file_list = filedialog.askopenfilenames()
 z0 = 0
-r_obj = eps_biax = eps_biax_std = z = np.empty_like(file_list)
-a = 10 # bulge raduis in mm
+eps_biax = np.zeros_like(file_list)
+eps_biax_std = np.zeros_like(file_list)
+z = np.zeros_like(file_list)
+a = 10
 t_furu = 230e-6        # Thickness in µm
 E_furu = 215e6      # Young modulus in Pa
 v_furu = 0.4        # poisson modulus
 E_bsi = 1.5e9 
-v_bsi = 0.4 ; 
+v_bsi = 0.4  
 t_bsi = 40e-6 
    
 def Y(E,v):
@@ -36,15 +38,24 @@ def pressure(z,Y,t):
     return (8*Y*t*np.power(z,3))/(3*np.power(a,3))
 
 
-
+r_obj = []
 for iii in np.arange(len(file_list)):
-    r_obj[iii] = rp.raman_mapping_xy(file_list[iii], wn_min=500, wn_max=540)       # raman mapping object
+    r_obj.append(rp.raman_mapping_xy(file_list[iii], wn_min=500, wn_max=540))       # raman mapping object
     r_obj[iii].strain_biax()
-    eps_biax[iii] = r_obj.eps_biax_mean
-    eps_biax[iii] = r_obj.eps_biax_std
-    z[iii] = r_obj.z
+    eps_biax[iii] = r_obj[iii].eps_biax_mean
+    eps_biax_std[iii] = r_obj[iii].eps_biax_std
+    z[iii] = r_obj[iii].z
+    
+z = -z.astype(float)*0.001
+eps_biax = eps_biax.astype(float)
+eps_biax_std = eps_biax_std.astype(float)
 
 plt.figure()
-plt.errorbar(strain_macro(z,z0),eps_biax,eps_biax_std)
+plt.errorbar(strain_macro(z,z0),eps_biax,eps_biax_std,linestyle='',marker = 'o')
 plt.xlabel('Bulge macroscopic strain %')
 plt.ylabel('Silicon local strain %')
+
+
+#x_h = np.linspace(0,2)
+#plt.figure()
+#plt.plot(pressure(x_h,Y_furu,t_furu)/1000, strain_macro(x_h,0))
