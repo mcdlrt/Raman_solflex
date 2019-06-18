@@ -12,7 +12,22 @@ import matplotlib.pyplot as plt
 import os
 import time
 
-
+def headersize(filename):
+    """return line index of last parameter in the header of any raman scan txt file
+    """
+    try:
+        with open(filename, 'rU') as f:
+            l_i = 0
+            l = f.readline().replace('\n', '')
+            while l != '\n' and l != '' and l.find('=') != -1:
+                l = f.readline().replace('\n', '')
+                l_i += 1
+                
+                
+    except:
+        print('could not reader header size of {:}'.format(filename))
+    return l_i
+                
 def lorentzian(x, x0, a, gam, c):
     """Lorentzian method
     Args:
@@ -129,31 +144,17 @@ class raman_mapping_z:
         self.wn_min = wn_min
         self.wn_max = wn_max
         self.ref_si = ref_si
+        
         try:
+            self.hs = headersize(self.filename)
             self.data = pd.read_csv(self.filename,
-                                    header=35,
+                                    header=self.hs,
                                     sep='\t',
                                     index_col=0)
             self.data.rename(columns={'Unnamed: 0':'z'}, inplace=True)
             self.header = pd.read_csv(self.filename,
                                       sep='=\t',
-                                      nrows=35,
-                                      names=["parameter", "value"],
-                                      engine='python')
-            wn = self.data.columns[1:]
-            self.wn = np.array([float(iii) for iii in wn])
-            self.z = self.data.index
-            self.id_min = np.argmax(self.wn > wn_min)
-            self.id_max = np.argmin(self.wn < wn_max)
-            self.epoch = time.mktime(time.strptime(
-                    self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],
-                    "%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
-        except IndexError:
-            self.data = pd.read_csv(self.filename, header=36, sep='\t', index_col=0)
-            self.data.rename(columns={'Unnamed: 0':'z'}, inplace=True)
-            self.header = pd.read_csv(self.filename,
-                                      sep='=\t',
-                                      nrows=36,
+                                      nrows=self.hs,
                                       names=["parameter", "value"],
                                       engine='python')
             wn = self.data.columns[1:]
@@ -220,6 +221,7 @@ class raman_mapping_xy :
         eps_110 (np.array) : strain in a case of Si 100 crystal strained along <110> direction
         eps_100 (np.array) : strain in a case of Si 100 crystal strained along <100> direction
         eps_biax (np.array) : strain in a case of Si 100 crystal strained biaxialy in a 100 plane
+        hs (int): header size, line index of last parameter
     Methods : 
         
     """
@@ -229,11 +231,12 @@ class raman_mapping_xy :
         self.wn_max = wn_max
         self.ref_si = ref_si
         self.cmap = cmap
+        self.hs = headersize(self.filename)
         try:
-            self.data = pd.read_csv(self.filename, header=35, sep='\t')
+            self.data = pd.read_csv(self.filename, header=self.hs, sep='\t')
             self.data.rename(columns={'Unnamed: 0':'x','Unnamed: 1':'y'}, inplace=True)
             self.data.rename(columns={c: float(c) for c in self.data.columns[2:]})
-            self.header = pd.read_csv(self.filename, sep = '=\t', nrows=35, names=["parameter", "value"], engine='python')
+            self.header = pd.read_csv(self.filename, sep = '=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             wn = self.data.columns[2:]
             self.wn = np.array([float(iii) for iii in wn])    # list of wavenumber
             self.x = self.data.x.unique()                       # x values in µm
@@ -246,7 +249,7 @@ class raman_mapping_xy :
         self.id_min = np.argmax(self.wn > wn_min)
         self.id_max = np.argmin(self.wn < wn_max)
         try:
-            self.z = self.header[self.header['parameter'].str.match('Z (µm)')].values[0, 1]
+            self.z = self.header[self.header['parameter'].str.contains('Z ')].values[0, 1]
         except:
             print('Z axis value not stored in {:}'.format(self.filename))
             
@@ -379,21 +382,14 @@ class raman_spectrum:
             
     def __init__(self,filename, wn_min=490, wn_max=550):
         try: 
+            self.hs = headersize(self.filename)
             self.filename = filename
-            self.data = pd.read_csv(self.filename, header=35, sep='\t', names=['wavenumber', 'counts'], index_col=0)
-            self.header = pd.read_csv(self.filename, sep='=\t', nrows=35, names=["parameter", "value"], engine='python')
+            self.data = pd.read_csv(self.filename, header=self.hs, sep='\t', names=['wavenumber', 'counts'], index_col=0)
+            self.header = pd.read_csv(self.filename, sep='=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             self.wn_min = wn_min
             self.wn_max = wn_max
-            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],"%d.%m.%Y %H:%M:%S")) 
+            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],"%d.%m.%Y %H:%M:%S"))
 
-        except TypeError:
-            self.filename = filename
-            self.data = pd.read_csv(self.filename,header=36, sep='\t', names=['wavenumber', 'counts'], index_col=0)
-            self.header = pd.read_csv(self.filename, sep='=\t', nrows=36, names=["parameter", "value"], engine='python')
-            self.wn_min = wn_min
-            self.wn_max = wn_max
-            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S")) 
-                
         except IOError:
             print("file {} not found!".format(filename))
 
