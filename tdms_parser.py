@@ -24,6 +24,13 @@ class tdms_file:
         except :
             print('error')
         self.set_epoch_time()
+    
+    def paramters(self):
+        parameters = tdms_file.object(u'Paramètres de test')
+        self.Epaisseur = parameters.properties['Epaisseur']
+        self.LongueurUtile = parameters.properties['Longueur Utile']
+        self.LongueurTotale = parameters.properties['Longueur Totale']
+        self.Largeur = parameters.properties['Largeur']
         
     def readfile(self):
         self.group = u'Traction / Compression'
