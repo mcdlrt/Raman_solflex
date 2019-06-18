@@ -239,11 +239,17 @@ class raman_mapping_xy :
             self.x = self.data.x.unique()                       # x values in µm
             self.y = self.data.y.unique()                       # y valles in µm
             #self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S")) 
+            
         except IOError:
             print("file {} not found!".format(filename))
             pass
         self.id_min = np.argmax(self.wn > wn_min)
         self.id_max = np.argmin(self.wn < wn_max)
+        try:
+            self.z = self.header[self.header['parameter'].str.match('Z (µm)')].values[0, 1]
+        except:
+            print('Z axis value not stored in {:}'.format(self.filename))
+            
 
     def fit(self, iii, jjj, p0=[520, 1, 2, 0], bounds_f=([500, 0, 0, 0], [540, 1000, 10, 100])):
         """Method used to fit raman data with a lorenztian curve
@@ -288,16 +294,22 @@ class raman_mapping_xy :
         self.fit_map()
         b_110 = -337
         self.eps_110 = 100*self.peak_shift_array / b_110
+        self.eps_110_mean = np.nanmean(self.eps_110)
+        self.eps_110_std = np.nanstd(self.eps_110)
        
     def strain_biax(self) :
         self.fit_map()
         b_biax = -733
         self.eps_biax = 100*self.peak_shift_array / b_biax
+        self.eps_biax_mean = np.nanmean(self.eps_biax)
+        self.eps_biax_std = np.nanstd(self.eps_biax)
         
     def strain100(self):
         self.fit_map()
         b_100 = -335.7
         self.eps_100 = 100*self.peak_shift_array / b_100
+        self.eps_100_mean = np.nanmean(self.eps_100)
+        self.eps_100_std = np.nanstd(self.eps_100)
         
     def plot_strain110(self):
         self.strain110()
