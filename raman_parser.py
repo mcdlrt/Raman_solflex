@@ -352,7 +352,9 @@ class raman_mapping_xy :
         plt.xlabel('µm')
         plt.title('Biaxial strain %%')
         plt.show()
-        print("mean biax strain = {:}".format(np.nanmean(self.eps_biax)))                
+        print("mean biax strain = {:}".format(np.nanmean(self.eps_biax)))
+
+    def plot_fit()                
         
 class raman_spectrum:
     """parse and fit .txt single silicon raman spectrum from a horiba Raman spectrometer
@@ -382,8 +384,8 @@ class raman_spectrum:
             
     def __init__(self,filename, wn_min=490, wn_max=550):
         try: 
-            self.hs = headersize(self.filename)
             self.filename = filename
+            self.hs = headersize(self.filename)
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t', names=['wavenumber', 'counts'], index_col=0)
             self.header = pd.read_csv(self.filename, sep='=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             self.wn_min = wn_min
@@ -414,3 +416,9 @@ class raman_spectrum:
         plt.ylabel('Counts per second')
         plt.show()
 
+    def plot_raw(self):
+        fig1 = plt.figure()
+        plt.plot(self.data.index,self.data.counts,'k')
+        plt.xlabel('Wave number $cm^{-1}$')
+        plt.ylabel('Counts per second')
+        plt.show()
