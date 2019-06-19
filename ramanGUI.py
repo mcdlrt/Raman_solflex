@@ -35,22 +35,22 @@ class RamanGUI(QMainWindow):
         self.statusBar()
         self.statusBar().showMessage('Ready')
         
-        '''dirbtn  = QPushButton('Home directory', self)
+        dirbtn  = QPushButton('Home directory', self)
         dirbtn.clicked.connect(self.setHomeDir)
-        dirbtn.move(50, 180)'''
+        dirbtn.move(50, 180)
         
-        tdmsedit = QLineEdit()
+        '''tdmsedit = QLineEdit()
         ramanedit = QLineEdit()
         tdmslabel = QLabel('Open tdms')
-        ramanlabel = QLabel('Open raman')
+        ramanlabel = QLabel('Open raman')'''
         
-        #tdmsedit = QPushButton('Open tdms', self)
-        #tdmsedit.clicked.connect(self.openTDMS)
-        #tdmsedit.move(50, 60)
+        tdmsedit = QPushButton('Open tdms', self)
+        tdmsedit.clicked.connect(self.openTDMS)
+        tdmsedit.move(50, 60)
         
-        #ramanbtn = QPushButton('Open raman', self)
-        #ramanbtn.clicked.connect(self.openRaman)
-        #ramanbtn.move(50, 100)
+        ramanbtn = QPushButton('Open raman', self)
+        ramanbtn.clicked.connect(self.openRaman)
+        ramanbtn.move(50, 100)
         
         
         
@@ -60,20 +60,20 @@ class RamanGUI(QMainWindow):
         
         combo = QComboBox(self)
         combo.addItems(['110', '100'])
-        #combo.move(50, 140)
+        combo.move(50, 140)
         combo.activated[str].connect(self.crystalorientationset)
-        '''menubar = self.menuBar()
+        menubar = self.menuBar()
         fileMenu = menubar.addMenu('&Menu')
-        fileMenu.addAction(exitAction)'''
+        fileMenu.addAction(exitAction)
     
-        grid = QGridLayout()
+        '''grid = QGridLayout()
         grid.setSpacing(10)
         grid.addWidget(tdmslabel, 1, 2)
         grid.addWidget(tdmsedit, 1, 1)
         grid.addWidget(ramanlabel, 2, 0)
         grid.addWidget(ramanedit, 2, 1)
         grid.addWidget(combo, 3, 1)
-        self.setLayout(grid)
+        self.setLayout(grid)'''
         
         self.setGeometry(300, 300, 700, 500)
         self.setWindowTitle('TestGUI')    
@@ -98,10 +98,10 @@ class RamanGUI(QMainWindow):
         
         
     def openTDMS(self, event):
-        self.tdms_file = QFileDialog(self).getOpenFileName(self, "Tensile stage data", "C:/", "TDMS files (*.tdms)")
+        self.tdms_file = QFileDialog(self).getOpenFileName(self, "Tensile stage data", self.homedir, "TDMS files (*.tdms)")
         
     def openRaman(self, event):
-        self.raman_file = QFileDialog(self).getOpenFileName(self, "Raman data", "C:/", "TXT files (*.txt)")
+        self.raman_file = QFileDialog(self).getOpenFileName(self, "Raman data", self.homedir, "TXT files (*.txt)")
     
     def crystalorientationset(self, text):
         self.crystalorientation = text
