@@ -12,11 +12,11 @@ from scipy.optimize import curve_fit
 def lin_fun(x,a,b):
     return a*x+b
 
-filepath = r"S:\300-Projets_Transverses\300.56-Solflex\raman_data\20190605_bulge\txt"
-file_prefix = r"Si_zscan_p0.02_"
+filepath = r"S:\300-Projets_Transverses\300.56-Solflex\raman_data\20190619_bulge\txt\z_scan"
+file_prefix = r"SOP_200nm_SPIS_p0.7_z_"
 
-file_index = np.array([1,2,3,4,5])
-z0 = np.array([0,0,0,0,0])  # ofset
+file_index = np.array([1,2,3])
+z0 = np.array([0,0,0])  # ofset
 surf_z = np.zeros_like(file_index)
 time_array = np.zeros_like(file_index)
 fit_array = np.zeros_like(file_index)
@@ -34,7 +34,7 @@ plt.figure()
 
 [popt,pcov] = curve_fit(lin_fun,time_array,surf_z)
 
-plt.figure()
+#plt.figure()
 plt.plot(time_array,surf_z,'ko')
 plt.plot(time_array,lin_fun(time_array,popt[0],popt[1]))
 plt.xlabel('time (s)')
