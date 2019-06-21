@@ -66,6 +66,7 @@ class RamanGUI(QMainWindow):
         fileMenu = menubar.addMenu('&Menu')
         fileMenu.addAction(exitAction)
     
+    
         '''grid = QGridLayout()
         grid.setSpacing(10)
         grid.addWidget(tdmslabel, 1, 2)
@@ -73,7 +74,8 @@ class RamanGUI(QMainWindow):
         grid.addWidget(ramanlabel, 2, 0)
         grid.addWidget(ramanedit, 2, 1)
         grid.addWidget(combo, 3, 1)
-        self.setLayout(grid)'''
+        self.setLayout(grid)
+        блаблабла'''
         
         self.setGeometry(300, 300, 700, 500)
         self.setWindowTitle('TestGUI')    
