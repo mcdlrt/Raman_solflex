@@ -15,9 +15,9 @@ import time
 def headersize(filename):
     """return line index of last parameter in the header of any raman scan txt file
     """
+    l_i = 0
     try:
         with open(filename, 'rU') as f:
-            l_i = 0
             l = f.readline().replace('\n', '')
             while l != '\n' and l != '' and l.find('=') != -1:
                 l = f.readline().replace('\n', '')
@@ -344,7 +344,7 @@ class raman_mapping_xy :
         self.strain_biax()
         fig = plt.figure()
         plt.imshow(self.eps_biax,cmap=self.cmap
-                        ,vmin = -3, vmax = 3
+                        ,vmin = -0.07 , vmax = 0.11
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
                         
         plt.colorbar()
@@ -376,14 +376,13 @@ class raman_spectrum:
     Methods :
         fit : fit a lorentziand function to the experimental datas
         plot: plot experimental data and fit results
-    
-    
+
     """
             
-    def __init__(self,filename, wn_min=490, wn_max=550):
+    def __init__(self, filename, wn_min=490, wn_max=550):
         try: 
-            self.hs = headersize(self.filename)
             self.filename = filename
+            self.hs = headersize(self.filename)
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t', names=['wavenumber', 'counts'], index_col=0)
             self.header = pd.read_csv(self.filename, sep='=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             self.wn_min = wn_min
