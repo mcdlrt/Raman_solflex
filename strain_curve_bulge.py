@@ -45,15 +45,19 @@ for iii in np.arange(len(file_list)):
     eps_biax[iii] = r_obj[iii].eps_biax_mean
     eps_biax_std[iii] = r_obj[iii].eps_biax_std
     z[iii] = r_obj[iii].z
+    r_obj[iii].plot_biax()
+    print(file_list[iii])
+    
+    
     
 z = -z.astype(float)*0.001
 eps_biax = eps_biax.astype(float)
 eps_biax_std = eps_biax_std.astype(float)
 
-plt.figure()
-plt.errorbar(strain_macro(z,z0),eps_biax,eps_biax_std,linestyle='',marker = 'o')
-plt.xlabel('Bulge macroscopic strain %')
-plt.ylabel('Silicon local strain %')
+#plt.figure()
+#plt.errorbar(strain_macro(z,z0),eps_biax,eps_biax_std,linestyle='',marker = 'o')
+#plt.xlabel('Bulge macroscopic strain %')
+#plt.ylabel('Silicon local strain %')
 
 
 #x_h = np.linspace(0,2)
