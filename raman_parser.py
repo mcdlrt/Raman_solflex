@@ -48,33 +48,31 @@ class raman_time_scan:
         self.wn_min = wn_min
         self.wn_max = wn_max
         self.ref_si = ref_si
-        for iii in np.array([34, 35, 36, 37]):
-            try:
-                print(iii)
-                self.data = pd.read_csv(self.filename, header=iii, sep='\t', index_col=0) #
-                self.data.rename(columns={'Unnamed: 0':'time'}, inplace=True)
-                self.header = pd.read_csv(self.filename,
-                                          sep='=\t',
-                                          nrows=iii,
-                                          names=["parameter", "value"],
-                                          engine='python')
-                wn = self.data.columns[1:]
-                self.wn = np.array([float(jjj) for jjj in wn])
-                self.time = self.data.index
-                self.id_min = np.argmax(self.wn > wn_min)
-                self.id_max = np.argmin(self.wn < wn_max)
-                self.epoch = time.mktime(time.strptime(self.header.value[iii-1],
-                                                       "%d.%m.%Y %H:%M:%S"))
-                # date of scan since epoch in s
-                self.time_epoch = self.time + self.epoch
-                self.duration = float(self.header.value[1])*float(self.header.value[0])
-                break
-            except IOError:
-                print("file {} not found!".format(filename))
-            except pd.errors.ParserError:
-                print("Parsing error")
-            except IndexError:
-                print('index error')
+        try:
+            self.hs = headersize(self.filename)
+            self.data = pd.read_csv(self.filename, header=self.hs, sep='\t', index_col=0) #
+            self.data.rename(columns={'Unnamed: 0':'time'}, inplace=True)
+            self.header = pd.read_csv(self.filename,
+                                      sep='=\t',
+                                      nrows=self.hs,
+                                      names=["parameter", "value"],
+                                      engine='python')
+            wn = self.data.columns[1:]
+            self.wn = np.array([float(jjj) for jjj in wn])
+            self.time = self.data.index
+            self.id_min = np.argmax(self.wn > wn_min)
+            self.id_max = np.argmin(self.wn < wn_max)
+            self.epoch = time.mktime(time.strptime(
+                    self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],
+                    "%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
+            # date of scan since epoch in s
+            self.time_epoch = self.time + self.epoch
+            self.duration = float(self.header.value[1])*float(self.header.value[0])
+
+        except IOError:
+            print("file {} not found!".format(filename))
+        except IndexError:
+            print('index error')
 
     def fit_tscan(self):
         """Method to fit silicon raman peak as a function of time
@@ -352,8 +350,10 @@ class raman_mapping_xy :
         plt.xlabel('µm')
         plt.title('Biaxial strain %%')
         plt.show()
-        print("mean biax strain = {:}".format(np.nanmean(self.eps_biax)))                
-        
+        print("mean biax strain = {:}".format(np.nanmean(self.eps_biax)))
+
+    def plot_fit_raw():                
+        print('to be done')
 class raman_spectrum:
     """parse and fit .txt single silicon raman spectrum from a horiba Raman spectrometer
     
@@ -382,8 +382,8 @@ class raman_spectrum:
             
     def __init__(self,filename, wn_min=490, wn_max=550):
         try: 
-            self.hs = headersize(self.filename)
             self.filename = filename
+            self.hs = headersize(self.filename)
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t', names=['wavenumber', 'counts'], index_col=0)
             self.header = pd.read_csv(self.filename, sep='=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             self.wn_min = wn_min
@@ -414,3 +414,9 @@ class raman_spectrum:
         plt.ylabel('Counts per second')
         plt.show()
 
+    def plot_raw(self):
+        fig1 = plt.figure()
+        plt.plot(self.data.index,self.data.counts,'k')
+        plt.xlabel('Wave number $cm^{-1}$')
+        plt.ylabel('Counts per second')
+        plt.show()
