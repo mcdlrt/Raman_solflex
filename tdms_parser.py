@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import scipy as sps
 import numpy as np
 
-class tdms_file:
+class tdms:
     
     def __init__(self,filename):
         self.filename = filename
@@ -25,21 +25,21 @@ class tdms_file:
             print('error')
         self.set_epoch_time()
     
-    def paramters(self):
-        parameters = tdms_file.object(u'Paramètres de test')
-        self.Epaisseur = parameters.properties['Epaisseur']
-        self.LongueurUtile = parameters.properties['Longueur Utile']
-        self.LongueurTotale = parameters.properties['Longueur Totale']
-        self.Largeur = parameters.properties['Largeur']
+    def parameters(self):
+        parameters = self.file.object(u'Paramètres de test')
+        self.Thickness = parameters.properties['Epaisseur']
+        self.Length = parameters.properties['Longueur Utile']
+        self.LengthTotale = parameters.properties['Longueur Totale']
+        self.Width = parameters.properties['Largeur']
         
     def readfile(self):
         self.group = u'Traction / Compression'
-        self.time = self.file.object(self.group, u'Temps (s)').data   #fr Temps
-        self.speed = self.file.object(self.group, u'Vitesse (µm/s)').data
-        self.elongation = self.file.object(self.group, u'Allongement (µm)').data
-        self.force = self.file.object(self.group, u'Force (N)').data
-        self.stress = self.file.object(self.group, u'Contrainte (Mpa)').data
-        self.deformation = self.file.object(self.group, u'Déformation (%)').data
+        self.Time = self.file.object(self.group, u'Temps (s)').data   #fr Temps
+        self.Speed = self.file.object(self.group, u'Vitesse (µm/s)').data
+        self.Elongation = self.file.object(self.group, u'Allongement (µm)').data
+        self.Force = self.file.object(self.group, u'Force (N)').data
+        self.Stress = self.file.object(self.group, u'Contrainte (Mpa)').data
+        self.Deformation = self.file.object(self.group, u'Déformation (%)').data
     
     def plot(self, a, b):
         fig = plt.figure()
@@ -49,7 +49,7 @@ class tdms_file:
         plt.show()
         
     def set_epoch_time(self):
-        self.epoch_time = self.time+self.mtime - self.time[-1]
+        self.epoch_time = self.Time+self.mtime - self.Time[-1]
         
     def get_value(self,r_time,duration,attr):
         val = getattr(self,attr)
