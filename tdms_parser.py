@@ -18,21 +18,21 @@ class tdms:
         self.ctime = os.path.getctime(self.filename)
         self.mtime = os.path.getmtime(self.filename)
         self.file = TdmsFile(filename)
-        
+        self.readfile()
         try : 
             self.readfile()
         except :
             print('error')
         self.set_epoch_time()
-    
-    def parameters(self):
+        
+    def readfile(self):
+        
         parameters = self.file.object(u'Paramètres de test')
         self.Thickness = parameters.properties['Epaisseur']
         self.Length = parameters.properties['Longueur Utile']
         self.LengthTotale = parameters.properties['Longueur Totale']
         self.Width = parameters.properties['Largeur']
         
-    def readfile(self):
         self.group = u'Traction / Compression'
         self.Time = self.file.object(self.group, u'Temps (s)').data   #fr Temps
         self.Speed = self.file.object(self.group, u'Vitesse (µm/s)').data
