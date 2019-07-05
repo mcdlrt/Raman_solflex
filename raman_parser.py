@@ -3,6 +3,9 @@
 Created on Tue May 21 10:33:34 2019
 
 @author: LM254515
+
+Contains different class for parser and fiting Raman spectrum of Si obtain on a Horiba Labram HR
+laurent.g.michaud@gmail.com
 """
 
 import numpy as np
@@ -14,6 +17,7 @@ import time
 
 def headersize(filename):
     """return line index of last parameter in the header of any raman scan txt file
+    args
     """
     try:
         with open(filename, 'rU') as f:
@@ -23,25 +27,37 @@ def headersize(filename):
                 l = f.readline().replace('\n', '')
                 l_i += 1
                 
-                
+    except IOError:
+            print("file {} not found!".format(filename))            
     except:
         print('could not reader header size of {:}'.format(filename))
     return l_i
                 
 def lorentzian(x, x0, a, gam, c):
-    """Lorentzian method
+    """Lorentzian function
     Args:
-        x =
-        x0 =
-        a =
-        gam =
-        x =
-        Return :
+        x = input x value array
+        x0 = peak position
+        a = intensitie factor
+        gam = width
+        c = baseline
+    Return:
+        lenrezian_function(x) (array)            
     """
     return a * gam**2/(gam**2 +(x-x0)**2)+c
 
 class raman_time_scan:
     """Parse and fit Time scan for Si Raman measurement
+    Args:
+        filename(string) = path and filename of .txt Raman timescan
+        wn_min (float, default=490): lower wave number limit in cm^-1
+        wn_max (float ,default=550): higher wave number limit in cm^-1
+        ref_si (float, default=520.7) : Raman shift of reference Si sample
+    Metods:
+        fit : fit single scan at a defined time with a lorentzian function
+        fit_tscan : fit every scan of the file using fit function
+        plot_tscan : plot peak shift as a function of time
+    
     """
     def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7):
         self.filename = filename
@@ -119,23 +135,28 @@ class raman_mapping_z:
     Uses a lsq method to fit a lorentzian curve
 
     Args:
-        filename (str): .txt filename created by sofware Labspec...
-        wn_min (float,default = 480): lower wave number limit in cm^-1
-        wn_max (float,default = 560): higher wave number limit in cm^-1
+        filename(string) = path and filename of .txt Raman z mapping
+        wn_min (float, default=490): lower wave number limit in cm^-1
+        wn_max (float ,default=550): higher wave number limit in cm^-1
+        ref_si (float, default=520.7) : Raman shift of reference Si sample
 
     Attributes:
-        x
-        y
+        filename (string) : filname of .txt Raman z mapping
+        data (pandas.DataFrame) : contains all the data from .txt file
+        header (pandas.Dataframe) : header from the txt file, parameter and value
+        wn (float array) : wave number in cm^-1
+        epoch : starting time of scan in epoch time (s)
         peak_pos
         peak_shift_array (np.array) : Silicon Raman shift array from the fit
         peak_intensity_array (np.array) : Intensity of the silicon Raman peak
        surf_z (float) : Relative z coordinate of the silicon surface,
-       correponds to the max intensity of Silicon Raman peak
-       /!\ if the surface is not in focus range, surf_z will correpsond to an extremmum
+           correponds to the max intensity of Silicon Raman peak
+           /!\ if the surface is not in focus range, surf_z will correpsond to an extremmum
+       hs (int): header size, line index of last parameter
     Methods:
-        fit =
+        fit = fit single scan at a certain depth
         fit_zscan : fit a spectrum of the corresponding index to a lorentzian curve
-        plot_zscan =: plot Raman peak intensity as a function of scan relative z coordinates
+        plot_zscan : plot Raman peak intensity as a function of scan relative z coordinates
     """
     def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, cmap='coolwarm'):
         self.filename = filename
@@ -210,18 +231,28 @@ class raman_mapping_xy :
         filename (str): .txt filename created by sofware Labspec...
         wn_min (float,default = 480): lower wave number limit in cm^-1 
         wn_max (float,default = 560): higher wave number limit in cm^-1
+        ref_si (float, default=520.7) : Raman shift of reference Si sample
+
     
     Attributes : 
-        x
-        y
+        x (np.array) : x array (µm)
+        y (np.array) : y array (µm)
         peak_pos
         peak_shift_array (np.array) : Matrix of Silicon Raman shift, relative to the Si_ref value
         eps_110 (np.array) : strain in a case of Si 100 crystal strained along <110> direction
         eps_100 (np.array) : strain in a case of Si 100 crystal strained along <100> direction
         eps_biax (np.array) : strain in a case of Si 100 crystal strained biaxialy in a 100 plane
         hs (int): header size, line index of last parameter
+        filename (string) : filname of .txt Raman z mapping
+        data (pandas.DataFrame) : contains all the data from .txt file
+        header (pandas.Dataframe) : header from the txt file, parameter and value
+        wn (float array) : wave number in cm^-1        
     Methods : 
-        
+        fit : fit scan in a certain x,y point
+        fit_map : fit the whole xy map and create peak_shift_array attribute
+        plot_biax : plot biaxial strain using imshow
+        plot_strain100 : plot uniaxial strain along [100] direction using imshow
+        plot_strain110 : plot uniaxial strain along [110] using imshow
     """
     def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm'):
         self.filename = filename
@@ -372,6 +403,7 @@ class raman_spectrum:
         wn_max (float,default = 560): higher wave number limit in cm^-1
         x (float array): wave number array used for fit
         y (flaat array): counts/s number used for fit
+        hs (int) : header line number
     
     Methods :
         fit : fit a lorentziand function to the experimental datas

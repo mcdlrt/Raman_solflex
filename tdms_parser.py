@@ -53,10 +53,10 @@ class tdms:
         
     def get_value(self,r_time,duration,attr):
         val = getattr(self,attr)
-        med_val = np.median(val[(self.epoch_time>r_time) & (self.epoch_time<r_time+duration)])
-        return med_val
+        mean_val = np.mean(val[(self.epoch_time>r_time) & (self.epoch_time<r_time+duration)])
+        return mean_val
     
-    def get_elongation(self,r_time,duration):
-        return(self.get_value(r_time,duration,'elongation'))
+    def get_Elongation(self,r_time,duration):
+        return(self.get_value(r_time,duration,'Elongation'))
         
         

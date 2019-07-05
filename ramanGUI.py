@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QTextEdit, QGridLayout
 from PyQt5.QtGui import QIcon
 import PyQt5.QtCore
 import raman_parser as rp
+import matplotlib.pyplot as plt
 
 class RamanGUI(QMainWindow):    
     '''
@@ -170,10 +171,15 @@ class RamanGUI(QMainWindow):
         
     def openRaman(self, event):
         self.raman_name = QFileDialog(self).getOpenFileNames(self, "Raman data", self.homedir, "TXT files (*.txt)")
-        self.ramanline.setText(self.raman_name[0])
+        print(self.raman_name)
+        #self.ramanline.setText(self.raman_name[0])
        
     def crystalorientationset(self, text):
         self.crystalorientation = text
+        if text == '110':
+            self.b_uni = -337
+        elif text =='100':
+            self.b_uni = -335.7
    
     def setX(self, text):
         self.x = text
@@ -182,7 +188,21 @@ class RamanGUI(QMainWindow):
         self.y = text
     
     def start(self, event):
+        t_AF = 0 # autofocus time, to be defined later
+        for r_file in self.raman_name[0]:
+            r_o = rp.raman_time_scan(r_file)
+            r_o.fit_tscan()
+            for iii,t in enumerate(r_o.time):
+                time_elongation = r_o.epoch+(t*(r_o.duration+t_AF))
+                eps_macro = 100*self.tdms_file.get_Elongation(time_elongation, r_o.duration)/(self.tdms_file.Length*1000)
+                eps_Si = 100*(r_o.peak_shift_array[iii]-r_o.ref_si)/self.b_uni
+                plt.scatter(eps_macro,eps_Si,marker = 'o',c ='k')
+        plt.xlabel('Macroscopic sttrain %')
+        plt.ylabel('Local Silicon Strain %')
+        plt.show()
+            
         print('START!')
+    
     
 if __name__ == '__main__':
     app = QApplication(sys.argv)
