@@ -111,7 +111,7 @@ class raman_time_scan:
         self.peak_shift_array = peak_shift_array
         self.peak_intensity_array = peak_intensity_array
 
-    def fit(self, iii, p0=[520, 1, 2, 0], bounds_f=([500, 0, 0, 0], [540, 1000, 10, 100])):
+    def fit(self, iii, p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [540, 10000, 10, 100])):
         self.x_fit = self.wn[self.id_min:self.id_max]
         self.y_fit = self.data.values[iii, self.id_min:self.id_max]
         self.p0 = p0
@@ -129,7 +129,18 @@ class raman_time_scan:
         plt.xlabel("time (s)")
         plt.ylabel("raman shift $cm^{-1}$")
         plt.show()
-
+    def plot_fit_raw(self):
+        """plot raw data and fit in one plot"""
+        plt.figure()
+        for iii, t_i in enumerate(self.time):
+            try:
+                self.fit(iii)
+                plt.plot(self.x_fit,self.y_fit,'o')
+                plt.plot(self.x_fit , lorentzian(self.x_fit, self.popt[0], self.popt[1], self.popt[2], self.popt[3]))                
+            except RuntimeError:
+                print("fit failed")
+        plt.show()                
+                
 class raman_mapping_z:
     """Parse and fit  Silion Raman z scan
     Uses a lsq method to fit a lorentzian curve
@@ -187,7 +198,7 @@ class raman_mapping_z:
         except IOError:
             print("file {} not found!".format(filename))
 
-    def fit(self, iii,p0=[520, 1, 2, 0], bounds_f=([500, 0, 0, 0], [540, 1000, 10, 100])):
+    def fit(self, iii,p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [540, 10000, 10, 100])):
         self.x_fit = self.wn[self.id_min:self.id_max]
         self.y_fit = self.data.values[iii,self.id_min:self.id_max]
         self.p0 = p0
@@ -223,6 +234,18 @@ class raman_mapping_z:
         plt.xlabel("z (um)")
         plt.ylabel("raman shift intsity (cts/s)")
         plt.show()
+        
+    def plot_fit_raw(self):
+        plt.figure()
+        for iii,z_i in enumerate(self.z):
+            try:
+                self.fit(iii)
+                plt.plot(self.x_fit,self.y_fit,'o')
+                plt.plot(self.x_fit , lorentzian(self.x_fit, self.popt[0], self.popt[1], self.popt[2], self.popt[3]))
+            except RuntimeError:    
+                print("no fit")
+        plt.show()
+        
 class raman_mapping_xy :
     """Parse and fit xy Silion Raman mapping
     Uses a lsq method to fit a lorentzian curve
@@ -272,7 +295,7 @@ class raman_mapping_xy :
             self.wn = np.array([float(iii) for iii in wn])    # list of wavenumber
             self.x = self.data.x.unique()                       # x values in µm
             self.y = self.data.y.unique()                       # y valles in µm
-            #self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S")) 
+            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.contains('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S")) 
             
         except IOError:
             print("file {} not found!".format(filename))
@@ -285,11 +308,13 @@ class raman_mapping_xy :
             print('Z axis value not stored in {:}'.format(self.filename))
             
 
-    def fit(self, iii, jjj, p0=[520, 1, 2, 0], bounds_f=([500, 0, 0, 0], [540, 1000, 10, 100])):
+    def fit(self, iii, jjj, p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [540, 10000, 10, 100])):
         """Method used to fit raman data with a lorenztian curve
         Args :
             iii (int): x indices
             jjj (int): y indices
+            p0 : initial parameters (peak_pos, intensiti factor, width, baseline)
+            bounds_f : lwoer and upper bounds for parameters
         """
         self.x_fit = self.wn[self.id_min:self.id_max]
         self.y_fit = self.data.values[iii*np.size(self.y)+jjj, self.id_min:self.id_max] / float(self.header.value[0])         # counts per second
@@ -383,8 +408,20 @@ class raman_mapping_xy :
         plt.show()
         print("mean biax strain = {:.4f} +- {:.4f}".format(np.nanmean(self.eps_biax),np.nanstd(self.eps_biax)))
 
-    def plot_fit_raw():                
-        print('to be done')
+    def plot_fit_raw(self):
+        """
+        Plot raw data and fit from map
+        """                
+        plt.figure()
+        for iii,el_x in enumerate (self.x):
+            for jjj,el_y in enumerate(self.y):
+                try:
+                    self.fit(iii, jjj)
+                    plt.plot(self.x_fit,self.y_fit,'o')
+                    plt.plot(self.x_fit , lorentzian(self.x_fit, self.popt[0], self.popt[1], self.popt[2], self.popt[3]))
+                except RuntimeError:
+                    print("no fit")
+        plt.show()
         
     def set_vmin_vmax(self, eps):
         im = plt.gca().get_images()[0]
@@ -428,11 +465,14 @@ class raman_spectrum:
             self.header = pd.read_csv(self.filename, sep='=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             self.wn_min = wn_min
             self.wn_max = wn_max
-            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],"%d.%m.%Y %H:%M:%S"))
-
+            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.contains('Acquired')].values[0, 1],"%d.%m.%Y %H:%M:%S"))
+            
         except IOError:
             print("file {} not found!".format(filename))
-
+        try:
+            self.fit()
+        except:
+            print("fit failed for file {:s}".format(filename))
     def fit(self):
         """Mehod used to fit raman data with a lorenztian curve
         """
@@ -442,11 +482,11 @@ class raman_spectrum:
         self.p0 = [self.x[self.y.argmax()], 1, 2, 0]     # initial values for fit parameters
         [self.popt, self.pcov] = curve_fit(lorentzian, self.x, self.y, self.p0)
         self.peak_pos = self.popt[0]
-    
+        self.perr = np.sqrt(np.diag(self.pcov))
+        
     def plot(self,output_folder= os.getcwd):
         """Method to plot experimental data and fit results in a choosen folder
         """
-        self.fit()
         fig1 = plt.figure()
         plt.plot(self.x,self.y,'bo')
         plt.plot(self.x , lorentzian(self.x,self.popt[0],self.popt[1],self.popt[2],self.popt[3]))
