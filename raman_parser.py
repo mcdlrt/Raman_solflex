@@ -341,8 +341,8 @@ class raman_mapping_xy :
         self.fit_map()
         fig = plt.figure()
         plt.imshow(self.peak_shift_array, cmap=self.cmap
-                        ,vmin=-5, vmax = 5
                         , extent=[0, self.x[-1]-self.x[0], 0, self.y[-1]-self.y[0]])
+        self.set_vmin_vmax(self.peak_shift_array)
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
@@ -423,12 +423,13 @@ class raman_mapping_xy :
                     print("no fit")
         plt.show()
         
-    def set_vmin_vmax(self, eps):
+    def set_vmin_vmax(self, param):
+        """ Center vmin and vmax of current plot"""
         im = plt.gca().get_images()[0]
         if self.eps_range:
             im.set_clim(-self.eps_range,self.eps_range)
         else:
-            im.set_clim(-np.max(np.abs(eps)),np.max(np.abs(eps)))
+            im.set_clim(-np.max(np.abs(param)),np.max(np.abs(param)))
             
 class raman_spectrum:
     """parse and fit .txt single silicon raman spectrum from a horiba Raman spectrometer
