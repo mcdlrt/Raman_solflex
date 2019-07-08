@@ -4,7 +4,7 @@ Created on Tue May 21 10:33:34 2019
 
 @author: LM254515
 
-Contains different class for parser and fiting Raman spectrum of Si obtain on a Horiba Labram HR
+Contains different class for parsing and fiting Raman spectrum of Si obtain on a Horiba Labram HR
 laurent.g.michaud@gmail.com
 """
 
@@ -232,6 +232,7 @@ class raman_mapping_xy :
         wn_min (float,default = 480): lower wave number limit in cm^-1 
         wn_max (float,default = 560): higher wave number limit in cm^-1
         ref_si (float, default=520.7) : Raman shift of reference Si sample
+        eps_range (float, default = 0) : range of strain for imshow plot vmin = - eps_range, vmax = eps_range
 
     
     Attributes : 
@@ -254,13 +255,14 @@ class raman_mapping_xy :
         plot_strain100 : plot uniaxial strain along [100] direction using imshow
         plot_strain110 : plot uniaxial strain along [110] using imshow
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm'):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm',eps_range = 0):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
         self.ref_si = ref_si
         self.cmap = cmap
         self.hs = headersize(self.filename)
+        self.eps_range = eps_range
         try:
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t')
             self.data.rename(columns={'Unnamed: 0':'x','Unnamed: 1':'y'}, inplace=True)
@@ -347,9 +349,8 @@ class raman_mapping_xy :
         self.strain110()
         fig = plt.figure()
         plt.imshow(self.eps_110,cmap=self.cmap
-                        ,vmin = -3, vmax = 3
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
-                        
+        self.set_vmin_vmax(self.eps_110)                
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
@@ -360,9 +361,8 @@ class raman_mapping_xy :
         self.strain100()
         fig = plt.figure()
         plt.imshow(self.eps_100,cmap=self.cmap
-                        ,vmin = -3, vmax = 3
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
-                        
+        self.set_vmin_vmax(self.eps_100)                                                
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
@@ -373,18 +373,26 @@ class raman_mapping_xy :
         self.strain_biax()
         fig = plt.figure()
         plt.imshow(self.eps_biax,cmap=self.cmap
-                        ,vmin = -3, vmax = 3
+                        ,vmin = -np.max(np.abs(self.eps_biax)), vmax = np.max(np.abs(self.eps_biax))
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
-                        
+        self.set_vmin_vmax(self.eps_biax)                                        
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
         plt.title('Biaxial strain %%')
         plt.show()
-        print("mean biax strain = {:}".format(np.nanmean(self.eps_biax)))
+        print("mean biax strain = {:.4f} +- {:.4f}".format(np.nanmean(self.eps_biax),np.nanstd(self.eps_biax)))
 
     def plot_fit_raw():                
         print('to be done')
+        
+    def set_vmin_vmax(self, eps):
+        im = plt.gca().get_images()[0]
+        if self.eps_range:
+            im.set_clim(-self.eps_range,self.eps_range)
+        else:
+            im.set_clim(-np.max(np.abs(eps)),np.max(np.abs(eps)))
+            
 class raman_spectrum:
     """parse and fit .txt single silicon raman spectrum from a horiba Raman spectrometer
     
