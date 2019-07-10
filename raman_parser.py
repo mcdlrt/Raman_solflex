@@ -15,6 +15,13 @@ import matplotlib.pyplot as plt
 import os
 import time
 
+def calibration(r_o):
+    rs = raman_spectrum(r_o.ref_start)
+    re = raman_spectrum(r_o.ref_end)
+    def ref(t,rs,re):
+        return rs.peak_pos+(t-rs.epoch)*((re.peak_pos-rs.peak_pos)/(re.epoch-rs.epoch))
+    r_o.wn = r_o.wn + 520.7- ref(r_o.epoch,rs,re)
+    
 def headersize(filename):
     """return line index of last parameter in the header of any raman scan txt file
     args
@@ -79,7 +86,7 @@ class raman_time_scan:
             self.id_min = np.argmax(self.wn > wn_min)
             self.id_max = np.argmin(self.wn < wn_max)
             self.epoch = time.mktime(time.strptime(
-                    self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],
+                    self.header[self.header['parameter'].str.contains('Acquired')].values[0, 1],
                     "%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
             # date of scan since epoch in s
             self.time_epoch = self.time + self.epoch

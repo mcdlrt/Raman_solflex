@@ -195,11 +195,11 @@ class RamanGUI(QMainWindow):
         for r_file in self.raman_name[0]:
             r_o = rp.raman_time_scan(r_file)
             r_o.fit_tscan()
-            for iii,t in enumerate(r_o.time):
-                time_elongation = r_o.epoch+(t*(r_o.duration+t_AF))
-                eps_macro = 100*self.tdms_file.get_Elongation(time_elongation, r_o.duration)/(self.tdms_file.Length*1000)
+            for iii,t in enumerate(r_o.time_epoch):
+                eps_macro = 100*self.tdms_file.get_Elongation(t, r_o.duration)/(self.tdms_file.Length*1000)
                 eps_Si = 100*(r_o.peak_shift_array[iii]-r_o.ref_si)/self.b_uni
                 plt.scatter(eps_macro,eps_Si,marker = 'o',c ='k')
+                print(eps_macro,eps_Si)
         plt.xlabel('Macroscopic strain %')
         plt.ylabel('Local Silicon Strain %')
         plt.show()
