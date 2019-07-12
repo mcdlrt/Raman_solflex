@@ -193,7 +193,7 @@ class RamanGUI(QMainWindow):
         t_AF = 0 # autofocus time, to be defined later
         plt.figure()
         for r_file in self.raman_name[0]:
-            r_o = rp.raman_time_scan(r_file)
+            r_o = rp.raman_time_scan(r_file, rejection=15)
             r_o.fit_tscan()
             for iii,t in enumerate(r_o.time_epoch):
                 eps_macro = 100*self.tdms_file.get_Elongation(t, r_o.duration)/(self.tdms_file.Length*1000)

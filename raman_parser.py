@@ -16,11 +16,9 @@ import os
 import time
 
 def calibration(r_o):
-    rs = raman_spectrum(r_o.ref_start)
-    re = raman_spectrum(r_o.ref_end)
     def ref(t,rs,re):
         return rs.peak_pos+(t-rs.epoch)*((re.peak_pos-rs.peak_pos)/(re.epoch-rs.epoch))
-    r_o.wn = r_o.wn + 520.7- ref(r_o.epoch,rs,re)
+    r_o.wn = r_o.wn + 520.7- ref(r_o.epoch,r_o.ref_start,r_o.ref_end)
     
 def headersize(filename):
     """return line index of last parameter in the header of any raman scan txt file
@@ -33,12 +31,12 @@ def headersize(filename):
             while l != '\n' and l != '' and l.find('=') != -1:
                 l = f.readline().replace('\n', '')
                 l_i += 1
-                
+        return l_i                
     except IOError:
             print("file {} not found!".format(filename))            
     except:
         print('could not reader header size of {:}'.format(filename))
-    return l_i
+    
                 
 def lorentzian(x, x0, a, gam, c):
     """Lorentzian function
@@ -60,17 +58,19 @@ class raman_time_scan:
         wn_min (float, default=490): lower wave number limit in cm^-1
         wn_max (float ,default=550): higher wave number limit in cm^-1
         ref_si (float, default=520.7) : Raman shift of reference Si sample
+        rejection(floatn, default=False) : Rejection parameter for fit (fit rejected if intensitie- base level < rejection)
     Metods:
         fit : fit single scan at a defined time with a lorentzian function
         fit_tscan : fit every scan of the file using fit function
         plot_tscan : plot peak shift as a function of time
     
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, rejection=False):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
         self.ref_si = ref_si
+        self.rejection = rejection
         try:
             self.hs = headersize(self.filename)
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t', index_col=0) #
@@ -110,8 +110,12 @@ class raman_time_scan:
         for iii, t_i in enumerate(self.time):
             try:
                 self.fit(iii)
-                peak_shift_array[iii] = self.peak_pos
-                peak_intensity_array[iii] = self.popt[1]
+                if self.rejection and (self.popt[1]-self.popt[3]) > self.rejection :
+                    peak_shift_array[iii] = self.peak_pos
+                    peak_intensity_array[iii] = self.popt[1]
+                else:
+                    peak_shift_array[iii] = np.nan
+                    peak_intensity_array[iii] = np.nan                    
             except RuntimeError:
                 peak_shift_array[iii] = np.nan
                 peak_intensity_array[iii] = np.nan
@@ -176,7 +180,7 @@ class raman_mapping_z:
         fit_zscan : fit a spectrum of the corresponding index to a lorentzian curve
         plot_zscan : plot Raman peak intensity as a function of scan relative z coordinates
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, cmap='coolwarm'):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, cmap='coolwarm', ref_start=0, ref_end=0):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
@@ -196,6 +200,13 @@ class raman_mapping_z:
                                       engine='python')
             wn = self.data.columns[1:]
             self.wn = np.array([float(iii) for iii in wn])
+            if ref_start !=0 and ref_end !=0:
+                try:
+                    self.ref_start = raman_spectrum(ref_start)
+                    self.ref_end = raman_spectrum(ref_end)
+                    calibration(self)
+                except:
+                    print('calibration failed')
             self.z = self.data.index
             self.id_min = np.argmax(self.wn > wn_min)
             self.id_max = np.argmin(self.wn < wn_max)
@@ -285,7 +296,7 @@ class raman_mapping_xy :
         plot_strain100 : plot uniaxial strain along [100] direction using imshow
         plot_strain110 : plot uniaxial strain along [110] using imshow
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm',eps_range = 0):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm',eps_range=0, ref_start=0, ref_end=0):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
@@ -300,9 +311,16 @@ class raman_mapping_xy :
             self.header = pd.read_csv(self.filename, sep = '=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             wn = self.data.columns[2:]
             self.wn = np.array([float(iii) for iii in wn])    # list of wavenumber
+            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.contains('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S"))
+            if ref_start !=0 and ref_end !=0:
+                try:
+                    self.ref_start = raman_spectrum(ref_start)
+                    self.ref_end = raman_spectrum(ref_end)
+                    calibration(self)
+                except:
+                    print('calibration failed')
             self.x = self.data.x.unique()                       # x values in µm
             self.y = self.data.y.unique()                       # y valles in µm
-            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.contains('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S")) 
             
         except IOError:
             print("file {} not found!".format(filename))
