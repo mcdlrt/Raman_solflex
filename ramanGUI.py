@@ -12,6 +12,7 @@ from PyQt5.QtGui import QIcon
 import PyQt5.QtCore
 import raman_parser as rp
 import matplotlib.pyplot as plt
+import pandas as pd
 
 class RamanGUI(QMainWindow):    
     '''
@@ -190,24 +191,63 @@ class RamanGUI(QMainWindow):
         self.y = text
     
     def start(self, event):
+        #creates DataFrame with all the data from TDMS and Raman file
         t_AF = 0 # autofocus time, to be defined later
-        plt.figure()
+        d = {'Filename':[],'Ref_si':[],'Elongation':[], 'Time':[], 'Force':[], 'StrainMacro':[], 'StrainSi':[], 'StressMacro':[],'StressSi':[],'Duration':[]}
+        df = pd.DataFrame(data=d)
         for r_file in self.raman_name[0]:
-            r_o = rp.raman_time_scan(r_file, rejection=15)
-            r_o.fit_tscan()
-            for iii,t in enumerate(r_o.time_epoch):
-                eps_macro = 100*self.tdms_file.get_Elongation(t, r_o.duration)/(self.tdms_file.Length*1000)
-                eps_Si = 100*(r_o.peak_shift_array[iii]-r_o.ref_si)/self.b_uni
-                plt.scatter(eps_macro,eps_Si,marker = 'o',c ='k')
+            try:
+                r_o = rp.raman_time_scan(r_file, rejection=15)
+                r_o.fit_tscan()
+                for iii,t in enumerate(r_o.time_epoch):
+                    eps_macro = 100*self.tdms_file.get_Elongation(t, r_o.duration)/(self.tdms_file.Length*1000)
+                    eps_Si = 100*(r_o.peak_shift_array[iii]-r_o.ref_si)/self.b_uni
+                    print(eps_macro, eps_Si)
+                    df = df.append({'Filename':r_o.filename
+                        , 'Ref_si': r_o.ref_si
+                        , 'Elongation': self.tdms_file.get_Elongation(t, r_o.duration)
+                        , 'Time': t
+                        , 'Force': self.tdms_file.get_value(t,r_o.duration,'Force')
+                        , 'StrainMacro': eps_macro
+                        , 'StrainSi':eps_Si
+                        , 'StressMacro':[]
+                        , 'StressSi':[]
+                        , 'Duration': r_o.duration}, ignore_index=True)
+            except:
+                r_o = rp.raman_spectrum(r_file)
+                eps_macro = 100*self.tdms_file.get_Elongation(r_o.epoch, r_o.duration)/(self.tdms_file.Length*1000)
+                eps_Si = 100*(r_o.peak_pos-r_o.ref_si)/self.b_uni
+                df = df.append({'Filename':r_o.filename
+                    , 'Ref_si': r_o.ref_si
+                    , 'Elongation': self.tdms_file.get_Elongation(r_o.epoch, r_o.duration)
+                    , 'Time': r_o.epoch
+                    , 'Force': self.tdms_file.get_value(r_o.epoch,r_o.duration,'Force')
+                    , 'StrainMacro': eps_macro
+                    , 'StrainSi':eps_Si
+                    , 'StressMacro':[]
+                    , 'StressSi':[]
+                    , 'Duration': r_o.duration}, ignore_index=True)
                 print(eps_macro,eps_Si)
+        
+        df.plot(x='StrainMacro',y='StrainSi',kind='scatter')
         plt.xlabel('Macroscopic strain %')
         plt.ylabel('Local Silicon Strain %')
         plt.show()
+        df.plot(x='StrainSi', y='Force', kind='scatter')
+        plt.show()
+        df.plot(x='StrainMacro',y='Force')
+        plt.show()
+        df.plot(x='Time',y='Elongation')
+        plt.show()
+        df.plot(x='Time', y='Force')
+        plt.show()
+        df.to_csv('results.txt', sep='\t')
         
-        for r_file in self.raman_name[0]:
-            r_o = rp.raman_time_scan(r_file)
-            r_o.fit_tscan()
-            r_o.plot_fit_raw()
+        
+#        for r_file in self.raman_name[0]:
+#            r_o = rp.raman_time_scan(r_file)
+#            r_o.fit_tscan()
+#            r_o.plot_fit_raw()
     
     
 if __name__ == '__main__':

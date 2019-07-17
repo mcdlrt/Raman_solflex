@@ -296,7 +296,7 @@ class raman_mapping_xy :
         plot_strain100 : plot uniaxial strain along [100] direction using imshow
         plot_strain110 : plot uniaxial strain along [110] using imshow
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm',eps_range=0, ref_start=0, ref_end=0):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm',eps_range=0, ref_start=False, ref_end=False):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
@@ -483,7 +483,7 @@ class raman_spectrum:
     
     """
             
-    def __init__(self,filename, wn_min=490, wn_max=550):
+    def __init__(self,filename, wn_min=490, wn_max=550, ref_si=520.7, ref_start=False, ref_end=False):
         try: 
             self.filename = filename
             self.hs = headersize(self.filename)
@@ -492,6 +492,8 @@ class raman_spectrum:
             self.wn_min = wn_min
             self.wn_max = wn_max
             self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.contains('Acquired')].values[0, 1],"%d.%m.%Y %H:%M:%S"))
+            self.duration = float(self.header.value[1])*float(self.header.value[0])
+            self.ref_si = ref_si
             
         except IOError:
             print("file {} not found!".format(filename))
