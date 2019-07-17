@@ -3,6 +3,9 @@
 Created on Tue May 21 10:33:34 2019
 
 @author: LM254515
+
+Contains different class for parsing and fiting Raman spectrum of Si obtain on a Horiba Labram HR
+laurent.g.michaud@gmail.com
 """
 
 import numpy as np
@@ -12,8 +15,14 @@ import matplotlib.pyplot as plt
 import os
 import time
 
+def calibration(r_o):
+    def ref(t,rs,re):
+        return rs.peak_pos+(t-rs.epoch)*((re.peak_pos-rs.peak_pos)/(re.epoch-rs.epoch))
+    r_o.wn = r_o.wn + 520.7- ref(r_o.epoch,r_o.ref_start,r_o.ref_end)
+    
 def headersize(filename):
     """return line index of last parameter in the header of any raman scan txt file
+    args
     """
     try:
         with open(filename, 'rU') as f:
@@ -22,32 +31,46 @@ def headersize(filename):
             while l != '\n' and l != '' and l.find('=') != -1:
                 l = f.readline().replace('\n', '')
                 l_i += 1
-                
-                
+        return l_i                
+    except IOError:
+            print("file {} not found!".format(filename))            
     except:
         print('could not reader header size of {:}'.format(filename))
-    return l_i
+    
                 
 def lorentzian(x, x0, a, gam, c):
-    """Lorentzian method
+    """Lorentzian function
     Args:
-        x =
-        x0 =
-        a =
-        gam =
-        x =
-        Return :
+        x = input x value array
+        x0 = peak position
+        a = intensitie factor
+        gam = width
+        c = baseline
+    Return:
+        lenrezian_function(x) (array)            
     """
     return a * gam**2/(gam**2 +(x-x0)**2)+c
 
 class raman_time_scan:
     """Parse and fit Time scan for Si Raman measurement
+    Args:
+        filename(string) = path and filename of .txt Raman timescan
+        wn_min (float, default=490): lower wave number limit in cm^-1
+        wn_max (float ,default=550): higher wave number limit in cm^-1
+        ref_si (float, default=520.7) : Raman shift of reference Si sample
+        rejection(floatn, default=False) : Rejection parameter for fit (fit rejected if intensitie- base level < rejection)
+    Metods:
+        fit : fit single scan at a defined time with a lorentzian function
+        fit_tscan : fit every scan of the file using fit function
+        plot_tscan : plot peak shift as a function of time
+    
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, rejection=False):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
         self.ref_si = ref_si
+        self.rejection = rejection
         try:
             self.hs = headersize(self.filename)
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t', index_col=0) #
@@ -63,7 +86,7 @@ class raman_time_scan:
             self.id_min = np.argmax(self.wn > wn_min)
             self.id_max = np.argmin(self.wn < wn_max)
             self.epoch = time.mktime(time.strptime(
-                    self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],
+                    self.header[self.header['parameter'].str.contains('Acquired')].values[0, 1],
                     "%d.%m.%Y %H:%M:%S"))      # date of scan since epoch in s
             # date of scan since epoch in s
             self.time_epoch = self.time + self.epoch
@@ -87,15 +110,19 @@ class raman_time_scan:
         for iii, t_i in enumerate(self.time):
             try:
                 self.fit(iii)
-                peak_shift_array[iii] = self.peak_pos
-                peak_intensity_array[iii] = self.popt[1]
+                if self.rejection and (self.popt[1]-self.popt[3]) > self.rejection :
+                    peak_shift_array[iii] = self.peak_pos
+                    peak_intensity_array[iii] = self.popt[1]
+                else:
+                    peak_shift_array[iii] = np.nan
+                    peak_intensity_array[iii] = np.nan                    
             except RuntimeError:
                 peak_shift_array[iii] = np.nan
                 peak_intensity_array[iii] = np.nan
         self.peak_shift_array = peak_shift_array
         self.peak_intensity_array = peak_intensity_array
 
-    def fit(self, iii, p0=[520, 1, 2, 0], bounds_f=([500, 0, 0, 0], [540, 1000, 10, 100])):
+    def fit(self, iii, p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [540, 10000, 10, 100])):
         self.x_fit = self.wn[self.id_min:self.id_max]
         self.y_fit = self.data.values[iii, self.id_min:self.id_max]
         self.p0 = p0
@@ -113,31 +140,47 @@ class raman_time_scan:
         plt.xlabel("time (s)")
         plt.ylabel("raman shift $cm^{-1}$")
         plt.show()
-
+    def plot_fit_raw(self):
+        """plot raw data and fit in one plot"""
+        plt.figure()
+        for iii, t_i in enumerate(self.time):
+            try:
+                self.fit(iii)
+                plt.plot(self.x_fit,self.y_fit,'o')
+                plt.plot(self.x_fit , lorentzian(self.x_fit, self.popt[0], self.popt[1], self.popt[2], self.popt[3]))                
+            except RuntimeError:
+                print("fit failed")
+        plt.show()                
+                
 class raman_mapping_z:
     """Parse and fit  Silion Raman z scan
     Uses a lsq method to fit a lorentzian curve
 
     Args:
-        filename (str): .txt filename created by sofware Labspec...
-        wn_min (float,default = 480): lower wave number limit in cm^-1
-        wn_max (float,default = 560): higher wave number limit in cm^-1
+        filename(string) = path and filename of .txt Raman z mapping
+        wn_min (float, default=490): lower wave number limit in cm^-1
+        wn_max (float ,default=550): higher wave number limit in cm^-1
+        ref_si (float, default=520.7) : Raman shift of reference Si sample
 
     Attributes:
-        x
-        y
+        filename (string) : filname of .txt Raman z mapping
+        data (pandas.DataFrame) : contains all the data from .txt file
+        header (pandas.Dataframe) : header from the txt file, parameter and value
+        wn (float array) : wave number in cm^-1
+        epoch : starting time of scan in epoch time (s)
         peak_pos
         peak_shift_array (np.array) : Silicon Raman shift array from the fit
         peak_intensity_array (np.array) : Intensity of the silicon Raman peak
        surf_z (float) : Relative z coordinate of the silicon surface,
-       correponds to the max intensity of Silicon Raman peak
-       /!\ if the surface is not in focus range, surf_z will correpsond to an extremmum
+           correponds to the max intensity of Silicon Raman peak
+           /!\ if the surface is not in focus range, surf_z will correpsond to an extremmum
+       hs (int): header size, line index of last parameter
     Methods:
-        fit =
+        fit = fit single scan at a certain depth
         fit_zscan : fit a spectrum of the corresponding index to a lorentzian curve
-        plot_zscan =: plot Raman peak intensity as a function of scan relative z coordinates
+        plot_zscan : plot Raman peak intensity as a function of scan relative z coordinates
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, cmap='coolwarm'):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, cmap='coolwarm', ref_start=0, ref_end=0):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
@@ -157,6 +200,13 @@ class raman_mapping_z:
                                       engine='python')
             wn = self.data.columns[1:]
             self.wn = np.array([float(iii) for iii in wn])
+            if ref_start !=0 and ref_end !=0:
+                try:
+                    self.ref_start = raman_spectrum(ref_start)
+                    self.ref_end = raman_spectrum(ref_end)
+                    calibration(self)
+                except:
+                    print('calibration failed')
             self.z = self.data.index
             self.id_min = np.argmax(self.wn > wn_min)
             self.id_max = np.argmin(self.wn < wn_max)
@@ -166,7 +216,7 @@ class raman_mapping_z:
         except IOError:
             print("file {} not found!".format(filename))
 
-    def fit(self, iii,p0=[520, 1, 2, 0], bounds_f=([500, 0, 0, 0], [540, 1000, 10, 100])):
+    def fit(self, iii,p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [540, 10000, 10, 100])):
         self.x_fit = self.wn[self.id_min:self.id_max]
         self.y_fit = self.data.values[iii,self.id_min:self.id_max]
         self.p0 = p0
@@ -202,6 +252,18 @@ class raman_mapping_z:
         plt.xlabel("z (um)")
         plt.ylabel("raman shift intsity (cts/s)")
         plt.show()
+        
+    def plot_fit_raw(self):
+        plt.figure()
+        for iii,z_i in enumerate(self.z):
+            try:
+                self.fit(iii)
+                plt.plot(self.x_fit,self.y_fit,'o')
+                plt.plot(self.x_fit , lorentzian(self.x_fit, self.popt[0], self.popt[1], self.popt[2], self.popt[3]))
+            except RuntimeError:    
+                print("no fit")
+        plt.show()
+        
 class raman_mapping_xy :
     """Parse and fit xy Silion Raman mapping
     Uses a lsq method to fit a lorentzian curve
@@ -210,26 +272,38 @@ class raman_mapping_xy :
         filename (str): .txt filename created by sofware Labspec...
         wn_min (float,default = 480): lower wave number limit in cm^-1 
         wn_max (float,default = 560): higher wave number limit in cm^-1
+        ref_si (float, default=520.7) : Raman shift of reference Si sample
+        eps_range (float, default = 0) : range of strain for imshow plot vmin = - eps_range, vmax = eps_range
+
     
     Attributes : 
-        x
-        y
+        x (np.array) : x array (µm)
+        y (np.array) : y array (µm)
         peak_pos
         peak_shift_array (np.array) : Matrix of Silicon Raman shift, relative to the Si_ref value
         eps_110 (np.array) : strain in a case of Si 100 crystal strained along <110> direction
         eps_100 (np.array) : strain in a case of Si 100 crystal strained along <100> direction
         eps_biax (np.array) : strain in a case of Si 100 crystal strained biaxialy in a 100 plane
         hs (int): header size, line index of last parameter
+        filename (string) : filname of .txt Raman z mapping
+        data (pandas.DataFrame) : contains all the data from .txt file
+        header (pandas.Dataframe) : header from the txt file, parameter and value
+        wn (float array) : wave number in cm^-1        
     Methods : 
-        
+        fit : fit scan in a certain x,y point
+        fit_map : fit the whole xy map and create peak_shift_array attribute
+        plot_biax : plot biaxial strain using imshow
+        plot_strain100 : plot uniaxial strain along [100] direction using imshow
+        plot_strain110 : plot uniaxial strain along [110] using imshow
     """
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm'):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si = 520.7,cmap='coolwarm',eps_range=0, ref_start=0, ref_end=0):
         self.filename = filename
         self.wn_min = wn_min
         self.wn_max = wn_max
         self.ref_si = ref_si
         self.cmap = cmap
         self.hs = headersize(self.filename)
+        self.eps_range = eps_range
         try:
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t')
             self.data.rename(columns={'Unnamed: 0':'x','Unnamed: 1':'y'}, inplace=True)
@@ -237,9 +311,16 @@ class raman_mapping_xy :
             self.header = pd.read_csv(self.filename, sep = '=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             wn = self.data.columns[2:]
             self.wn = np.array([float(iii) for iii in wn])    # list of wavenumber
+            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.contains('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S"))
+            if ref_start !=0 and ref_end !=0:
+                try:
+                    self.ref_start = raman_spectrum(ref_start)
+                    self.ref_end = raman_spectrum(ref_end)
+                    calibration(self)
+                except:
+                    print('calibration failed')
             self.x = self.data.x.unique()                       # x values in µm
             self.y = self.data.y.unique()                       # y valles in µm
-            #self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0,1],"%d.%m.%Y %H:%M:%S")) 
             
         except IOError:
             print("file {} not found!".format(filename))
@@ -252,11 +333,13 @@ class raman_mapping_xy :
             print('Z axis value not stored in {:}'.format(self.filename))
             
 
-    def fit(self, iii, jjj, p0=[520, 1, 2, 0], bounds_f=([500, 0, 0, 0], [540, 1000, 10, 100])):
+    def fit(self, iii, jjj, p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [540, 10000, 10, 100])):
         """Method used to fit raman data with a lorenztian curve
         Args :
             iii (int): x indices
             jjj (int): y indices
+            p0 : initial parameters (peak_pos, intensiti factor, width, baseline)
+            bounds_f : lwoer and upper bounds for parameters
         """
         self.x_fit = self.wn[self.id_min:self.id_max]
         self.y_fit = self.data.values[iii*np.size(self.y)+jjj, self.id_min:self.id_max] / float(self.header.value[0])         # counts per second
@@ -283,8 +366,8 @@ class raman_mapping_xy :
         self.fit_map()
         fig = plt.figure()
         plt.imshow(self.peak_shift_array, cmap=self.cmap
-                        ,vmin=-5, vmax = 5
                         , extent=[0, self.x[-1]-self.x[0], 0, self.y[-1]-self.y[0]])
+        self.set_vmin_vmax(self.peak_shift_array)
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
@@ -316,9 +399,8 @@ class raman_mapping_xy :
         self.strain110()
         fig = plt.figure()
         plt.imshow(self.eps_110,cmap=self.cmap
-                        ,vmin = -3, vmax = 3
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
-                        
+        self.set_vmin_vmax(self.eps_110)                
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
@@ -329,9 +411,8 @@ class raman_mapping_xy :
         self.strain100()
         fig = plt.figure()
         plt.imshow(self.eps_100,cmap=self.cmap
-                        ,vmin = -3, vmax = 3
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
-                        
+        self.set_vmin_vmax(self.eps_100)                                                
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
@@ -342,18 +423,39 @@ class raman_mapping_xy :
         self.strain_biax()
         fig = plt.figure()
         plt.imshow(self.eps_biax,cmap=self.cmap
-                        ,vmin = -3, vmax = 3
+                        ,vmin = -np.max(np.abs(self.eps_biax)), vmax = np.max(np.abs(self.eps_biax))
                         , extent = [0,self.x[-1]-self.x[0],0,self.y[-1]-self.y[0]])
-                        
+        self.set_vmin_vmax(self.eps_biax)                                        
         plt.colorbar()
         plt.xlabel('µm')
         plt.xlabel('µm')
         plt.title('Biaxial strain %%')
         plt.show()
-        print("mean biax strain = {:}".format(np.nanmean(self.eps_biax)))
+        print("mean biax strain = {:.4f} +- {:.4f}".format(np.nanmean(self.eps_biax),np.nanstd(self.eps_biax)))
 
-    def plot_fit_raw():                
-        print('to be done')
+    def plot_fit_raw(self):
+        """
+        Plot raw data and fit from map
+        """                
+        plt.figure()
+        for iii,el_x in enumerate (self.x):
+            for jjj,el_y in enumerate(self.y):
+                try:
+                    self.fit(iii, jjj)
+                    plt.plot(self.x_fit,self.y_fit,'o')
+                    plt.plot(self.x_fit , lorentzian(self.x_fit, self.popt[0], self.popt[1], self.popt[2], self.popt[3]))
+                except RuntimeError:
+                    print("no fit")
+        plt.show()
+        
+    def set_vmin_vmax(self, param):
+        """ Center vmin and vmax of current plot"""
+        im = plt.gca().get_images()[0]
+        if self.eps_range:
+            im.set_clim(-self.eps_range,self.eps_range)
+        else:
+            im.set_clim(-np.max(np.abs(param)),np.max(np.abs(param)))
+            
 class raman_spectrum:
     """parse and fit .txt single silicon raman spectrum from a horiba Raman spectrometer
     
@@ -372,6 +474,7 @@ class raman_spectrum:
         wn_max (float,default = 560): higher wave number limit in cm^-1
         x (float array): wave number array used for fit
         y (flaat array): counts/s number used for fit
+        hs (int) : header line number
     
     Methods :
         fit : fit a lorentziand function to the experimental datas
@@ -388,11 +491,14 @@ class raman_spectrum:
             self.header = pd.read_csv(self.filename, sep='=\t', nrows=self.hs, names=["parameter", "value"], engine='python')
             self.wn_min = wn_min
             self.wn_max = wn_max
-            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.match('Acquired')].values[0, 1],"%d.%m.%Y %H:%M:%S"))
-
+            self.epoch = time.mktime(time.strptime(self.header[self.header['parameter'].str.contains('Acquired')].values[0, 1],"%d.%m.%Y %H:%M:%S"))
+            
         except IOError:
             print("file {} not found!".format(filename))
-
+        try:
+            self.fit()
+        except:
+            print("fit failed for file {:s}".format(filename))
     def fit(self):
         """Mehod used to fit raman data with a lorenztian curve
         """
@@ -402,11 +508,11 @@ class raman_spectrum:
         self.p0 = [self.x[self.y.argmax()], 1, 2, 0]     # initial values for fit parameters
         [self.popt, self.pcov] = curve_fit(lorentzian, self.x, self.y, self.p0)
         self.peak_pos = self.popt[0]
-    
+        self.perr = np.sqrt(np.diag(self.pcov))
+        
     def plot(self,output_folder= os.getcwd):
         """Method to plot experimental data and fit results in a choosen folder
         """
-        self.fit()
         fig1 = plt.figure()
         plt.plot(self.x,self.y,'bo')
         plt.plot(self.x , lorentzian(self.x,self.popt[0],self.popt[1],self.popt[2],self.popt[3]))

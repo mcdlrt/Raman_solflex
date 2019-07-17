@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QTextEdit, QGridLayout
 from PyQt5.QtGui import QIcon
 import PyQt5.QtCore
 import raman_parser as rp
+import matplotlib.pyplot as plt
 
 class RamanGUI(QMainWindow):    
     '''
@@ -59,7 +60,7 @@ class RamanGUI(QMainWindow):
         self.ramanline.setText('...')
         self.ramanline.move(170, 100)
         
-        
+        # plot silicon strain (from .txt raman files) against macroscopic strain (from tdms file), see start function
         startbtn = QPushButton('Start!', self)
         startbtn.clicked.connect(self.start)
         startbtn.move(550, 450)
@@ -69,6 +70,7 @@ class RamanGUI(QMainWindow):
         cryor.addItems(['110', '100'])
         cryor.move(50, 140)
         cryor.activated[str].connect(self.crystalorientationset)
+        self.b_uni = -337 # default value for [110] orientation
         
         #Group of line editers where you can see the value of length/width/thickness
         #from your .tdms file or set it manualy 
@@ -104,16 +106,16 @@ class RamanGUI(QMainWindow):
         dirbtn.clicked.connect(self.setHomeDir)
         dirbtn.move(50, 180)
         
+        # Chosse x array to plot tdms values
         xcombo = QComboBox(self)
         xcombo.addItems(['Time', 'Force', 'Elongation', 'Stress'])
         xcombo.move(200, 220)
-        self.x = 'Time'
         xcombo.activated[str].connect(self.setX)
         
+        # choose y array to plot tdms values
         ycombo = QComboBox(self)
         ycombo.addItems(['Time', 'Force', 'Elongation', 'Stress'])
         ycombo.move(350, 220)
-        self.y = 'Time'
         ycombo.activated[str].connect(self.setY)
         
         plot = QPushButton('Plot it!', self)
@@ -163,6 +165,7 @@ class RamanGUI(QMainWindow):
         self.tdms_file.Length = float(length)
     
     def plotgraph(self, x, y):
+        
         try:
             self.tdms_file.plot(x, y)
         except:
@@ -170,10 +173,15 @@ class RamanGUI(QMainWindow):
         
     def openRaman(self, event):
         self.raman_name = QFileDialog(self).getOpenFileNames(self, "Raman data", self.homedir, "TXT files (*.txt)")
-        self.ramanline.setText(self.raman_name[0])
+        print(self.raman_name)
+        #self.ramanline.setText(self.raman_name[0])
        
     def crystalorientationset(self, text):
         self.crystalorientation = text
+        if text == '110':
+            self.b_uni = -337
+        elif text =='100':
+            self.b_uni = -335.7
    
     def setX(self, text):
         self.x = text
@@ -182,7 +190,25 @@ class RamanGUI(QMainWindow):
         self.y = text
     
     def start(self, event):
-        print('START!')
+        t_AF = 0 # autofocus time, to be defined later
+        plt.figure()
+        for r_file in self.raman_name[0]:
+            r_o = rp.raman_time_scan(r_file, rejection=15)
+            r_o.fit_tscan()
+            for iii,t in enumerate(r_o.time_epoch):
+                eps_macro = 100*self.tdms_file.get_Elongation(t, r_o.duration)/(self.tdms_file.Length*1000)
+                eps_Si = 100*(r_o.peak_shift_array[iii]-r_o.ref_si)/self.b_uni
+                plt.scatter(eps_macro,eps_Si,marker = 'o',c ='k')
+                print(eps_macro,eps_Si)
+        plt.xlabel('Macroscopic strain %')
+        plt.ylabel('Local Silicon Strain %')
+        plt.show()
+        
+        for r_file in self.raman_name[0]:
+            r_o = rp.raman_time_scan(r_file)
+            r_o.fit_tscan()
+            r_o.plot_fit_raw()
+    
     
 if __name__ == '__main__':
     app = QApplication(sys.argv)
