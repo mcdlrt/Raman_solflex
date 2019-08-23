@@ -100,7 +100,7 @@ class raman_spectrum:
             self.b_uni = -337
             self.E = 169 #young modulus in GPa
         elif orientation == '100':
-            self.b_uni = -399
+            self.b_uni = -250.6
             self.E = 130
         elif orientation == 'biax':
             self.b_uni = -727

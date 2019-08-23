@@ -32,6 +32,8 @@ class RamanGUI(QMainWindow):
         self.crystalorientation = '110'
         self.ref_start = False
         self.ref_end = False
+        self.time_coef = 1
+        self.time_offset = 0
         #An exit action garanties you sucsesseful closing of the window(see def closeEvent)
         exitAction = QAction(QIcon('test.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -126,6 +128,26 @@ class RamanGUI(QMainWindow):
         self.thickline.setText('...')
         self.lenline.textChanged[str].connect(self.setThick)
         self.thickline.move(570, 140)
+
+        #text box to choose coefficient corresponding to the 
+        self.time_coeflab = QLabel(self)
+        self.time_coeflab.setText('time coef')
+        self.time_coeflab.move(450, 350)
+        
+        self.coefline = QLineEdit(self)
+        self.coefline.setText('1')
+        self.coefline.textChanged[str].connect(self.setTimeCoef)
+        self.coefline.move(570, 350)
+
+        #text box to choose time offset        
+        self.timeOffsetLab = QLabel(self)
+        self.timeOffsetLab.setText('time(raman)+=')
+        self.timeOffsetLab.move(450, 400)
+        
+        self.timeOffsetLine = QLineEdit(self)
+        self.timeOffsetLine.setText('0')
+        self.timeOffsetLine.textChanged[str].connect(self.setTimeOffset)
+        self.timeOffsetLine.move(570, 400)
         
         #A button creates a dialog window when you can set up your home directory
         dirbtn  = QPushButton('Set directory', self)
@@ -153,7 +175,7 @@ class RamanGUI(QMainWindow):
         fileMenu.addAction(exitAction)
         
         self.setGeometry(300, 300, 700, 500)
-        self.setWindowTitle('TestGUI')
+        self.setWindowTitle('Raman Micromecha GUI')
         self.show()
         
     def closeEvent(self, event):
@@ -189,7 +211,21 @@ class RamanGUI(QMainWindow):
     
     def setLength(self, length):
         self.tdms_file.Length = float(length)
-    
+
+    def setTimeCoef(self,coef):
+        try:
+            self.time_coef = float(coef)
+            print(self.time_coef)
+        except ValueError:
+            print('not a valid coeff')
+            
+    def setTimeOffset(self,offset):
+        try:
+            self.time_offset = float(offset)
+            print(self.time_offset)
+        except ValueError:
+            print('not a valid offset')
+        
     def plotgraph(self, x, y):
         
         try:
@@ -233,6 +269,11 @@ class RamanGUI(QMainWindow):
             try:
                 r_o = rp.raman_spectrum(r_file,orientation=self.crystalorientation,file_type='t_scan', ref_start=self.ref_start, ref_end=self.ref_end)
                 for iii,t in enumerate(r_o.time_epoch):
+                    if self.time_coef != 1:
+                        t = r_o.epoch + (t-r_o.epoch)*self.time_coef
+                    if self.time_offset != 0:
+                        t = t+self.time_offset
+                        
                     eps_macro = 100*self.tdms_file.get_Elongation(t, r_o.duration)/(self.tdms_file.Length*1000)
                     df = df.append({'Filename':r_o.filename
                         , 'Ref_si': r_o.ref_si
@@ -278,7 +319,7 @@ class RamanGUI(QMainWindow):
         plt.show()
         df.plot(x='Time', y='Force')
         plt.show()
-        df.scatter(x='StrainMacro',y='pCov')
+        df.plot(x='StrainMacro',y='pCov',kind='scatter')
         plt.show()
         plt.figure()
         plt.errorbar(df['StrainMacro'], df['StrainSi'],df['Err_strain'])
