@@ -27,7 +27,7 @@ class RamanGUI(QMainWindow):
         
     def initUI(self):
         
-        self.homedir = 'C:/'       
+        self.homedir = r'S:\300-Projets_Transverses\300.56-Solflex'       
         
         #An exit action garanties you sucsesseful closing of the window(see def closeEvent)
         exitAction = QAction(QIcon('test.png'), '&Exit', self)
@@ -197,7 +197,7 @@ class RamanGUI(QMainWindow):
         df = pd.DataFrame(data=d)
         for r_file in self.raman_name[0]:
             try:
-                r_o = rp.raman_time_scan(r_file, rejection=15)
+                r_o = rp.raman_time_scan(r_file, rejection=45)
                 r_o.fit_tscan()
                 for iii,t in enumerate(r_o.time_epoch):
                     eps_macro = 100*self.tdms_file.get_Elongation(t, r_o.duration)/(self.tdms_file.Length*1000)
@@ -229,6 +229,7 @@ class RamanGUI(QMainWindow):
                     , 'Duration': r_o.duration}, ignore_index=True)
                 print(eps_macro,eps_Si)
         
+        
         df.plot(x='StrainMacro',y='StrainSi',kind='scatter')
         plt.xlabel('Macroscopic strain %')
         plt.ylabel('Local Silicon Strain %')
@@ -242,12 +243,16 @@ class RamanGUI(QMainWindow):
         df.plot(x='Time', y='Force')
         plt.show()
         df.to_csv('results.txt', sep='\t')
+
+   
         
-        
-#        for r_file in self.raman_name[0]:
-#            r_o = rp.raman_time_scan(r_file)
-#            r_o.fit_tscan()
-#            r_o.plot_fit_raw()
+        for r_file in self.raman_name[0]:
+            try:
+                r_o = rp.raman_time_scan(r_file,rejection=45)
+                r_o.fit_tscan()
+                r_o.plot_fit_raw()
+            except ValueError:
+                print('not a time scan {:}'.format(r_file))
     
     
 if __name__ == '__main__':

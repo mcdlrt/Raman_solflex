@@ -16,10 +16,10 @@ import os
 import time
 
 def calibration(r_o):
-    def ref(t,rs,re):
+    def ref(t, rs, re):
         return rs.peak_pos+(t-rs.epoch)*((re.peak_pos-rs.peak_pos)/(re.epoch-rs.epoch))
-    r_o.wn = r_o.wn + 520.7- ref(r_o.epoch,r_o.ref_start,r_o.ref_end)
-    
+    r_o.wn = r_o.wn + r_o.ref_si - ref(r_o.epoch, r_o.ref_start, r_o.ref_end)
+
 def headersize(filename):
     """return line index of last parameter in the header of any raman scan txt file
     args
@@ -31,12 +31,11 @@ def headersize(filename):
             while l != '\n' and l != '' and l.find('=') != -1:
                 l = f.readline().replace('\n', '')
                 l_i += 1
-        return l_i                
+        return l_i          
     except IOError:
             print("file {} not found!".format(filename))            
     except:
         print('could not reader header size of {:}'.format(filename))
-    
                 
 def lorentzian(x, x0, a, gam, c):
     """Lorentzian function
@@ -110,7 +109,7 @@ class raman_time_scan:
         for iii, t_i in enumerate(self.time):
             try:
                 self.fit(iii)
-                if self.rejection and (self.popt[1]-self.popt[3]) > self.rejection :
+                if self.rejection and (self.popt[1]-self.popt[3]) >= self.rejection :
                     peak_shift_array[iii] = self.peak_pos
                     peak_intensity_array[iii] = self.popt[1]
                 else:

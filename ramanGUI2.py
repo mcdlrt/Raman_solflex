@@ -28,12 +28,13 @@ class RamanGUI(QMainWindow):
         
     def initUI(self):
         
-        self.homedir = r'S:\300-Projets_Transverses\300.56-Solflex'       
+        self.homedir = r'S:\300-Projets_Transverses\300.56-Solflex\raman_data'        
         self.crystalorientation = '110'
         self.ref_start = False
         self.ref_end = False
         self.time_coef = 1
         self.time_offset = 0
+        self.PowerShift = 0
         #An exit action garanties you sucsesseful closing of the window(see def closeEvent)
         exitAction = QAction(QIcon('test.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -128,6 +129,16 @@ class RamanGUI(QMainWindow):
         self.thickline.setText('...')
         self.lenline.textChanged[str].connect(self.setThick)
         self.thickline.move(570, 140)
+        
+        #text box to choose offset shift to do laser power
+        self.powershift_lab = QLabel(self)
+        self.powershift_lab.setText('power shift $cm^{-1}$')
+        self.powershift_lab.move(450, 290)
+        
+        self.PowerShiftLine = QLineEdit(self)
+        self.PowerShiftLine.setText('0')
+        self.PowerShiftLine.textChanged[str].connect(self.setPowerShift)
+        self.PowerShiftLine.move(570, 290)
 
         #text box to choose coefficient corresponding to the 
         self.time_coeflab = QLabel(self)
@@ -154,21 +165,21 @@ class RamanGUI(QMainWindow):
         dirbtn.clicked.connect(self.setHomeDir)
         dirbtn.move(50, 180)
         
-        # Chosse x array to plot tdms values
-        xcombo = QComboBox(self)
-        xcombo.addItems(['Time', 'Force', 'Elongation', 'Stress'])
-        xcombo.move(200, 220)
-        xcombo.activated[str].connect(self.setX)
-        
-        # choose y array to plot tdms values
-        ycombo = QComboBox(self)
-        ycombo.addItems(['Time', 'Force', 'Elongation', 'Stress'])
-        ycombo.move(350, 220)
-        ycombo.activated[str].connect(self.setY)
-        
-        plot = QPushButton('Plot it!', self)
-        #plot.clicked.connect(self.plotgraph(self.x, self.y))
-        plot.move(500, 220)
+#        # Chosse x array to plot tdms values
+#        xcombo = QComboBox(self)
+#        xcombo.addItems(['Time', 'Force', 'Elongation', 'Stress'])
+#        xcombo.move(200, 220)
+#        xcombo.activated[str].connect(self.setX)
+#        
+#        # choose y array to plot tdms values
+#        ycombo = QComboBox(self)
+#        ycombo.addItems(['Time', 'Force', 'Elongation', 'Stress'])
+#        ycombo.move(350, 220)
+#        ycombo.activated[str].connect(self.setY)
+#        
+#        plot = QPushButton('Plot it!', self)
+#        #plot.clicked.connect(self.plotgraph(self.x, self.y))
+#        plot.move(500, 220)
         
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&Menu')
@@ -225,7 +236,11 @@ class RamanGUI(QMainWindow):
             print(self.time_offset)
         except ValueError:
             print('not a valid offset')
-        
+    def setPowerShift(self,shift):
+        try:
+            self.PowerShift = float(shift)
+        except ValueError:
+            print('not a valid shift')
     def plotgraph(self, x, y):
         
         try:
@@ -259,7 +274,6 @@ class RamanGUI(QMainWindow):
     
     def start(self, event):
         #creates DataFrame with all the data from TDMS and Raman file
-        t_AF = 0 # autofocus time, to be defined later
         d = {'Filename':[],'Ref_si':[],'Elongation':[], 'Time':[], 'Force':[], 'StrainMacro':[], 'StrainSi':[], 'StressMacro':[],'StressSi':[],'Duration':[],'pCov':[], 'Err_strain':[], 'Err_Stress':[]}
         df = pd.DataFrame(data=d)
         for r_file in self.raman_name[0]:
@@ -267,7 +281,7 @@ class RamanGUI(QMainWindow):
             print('{:}'.format(self.ref_start))
             print('{:}'.format(self.ref_end))
             try:
-                r_o = rp.raman_spectrum(r_file,orientation=self.crystalorientation,file_type='t_scan', ref_start=self.ref_start, ref_end=self.ref_end)
+                r_o = rp.raman_spectrum(r_file,orientation=self.crystalorientation,file_type='t_scan', ref_start=self.ref_start, ref_end=self.ref_end, ref_si=520.7-self.PowerShift)
                 for iii,t in enumerate(r_o.time_epoch):
                     if self.time_coef != 1:
                         t = r_o.epoch + (t-r_o.epoch)*self.time_coef
@@ -289,7 +303,7 @@ class RamanGUI(QMainWindow):
                         , 'Err_strain' : r_o.err_strain[iii]
                         , 'Err_stress' : r_o.err_stress[iii]}, ignore_index=True)
             except:
-                r_o = rp.raman_spectrum(r_file,orientation=self.crystalorientation, ref_start=self.ref_start, ref_end=self.ref_end)
+                r_o = rp.raman_spectrum(r_file,orientation=self.crystalorientation, ref_start=self.ref_start, ref_end=self.ref_end, ref_si=520.7-self.PowerShift)
                 eps_macro = 100*self.tdms_file.get_Elongation(r_o.epoch, r_o.duration)/(self.tdms_file.Length*1000)
                 df = df.append({'Filename':r_o.filename
                     , 'Ref_si': r_o.ref_si
@@ -310,6 +324,7 @@ class RamanGUI(QMainWindow):
         df.plot(x='StrainMacro',y='StrainSi',kind='scatter')
         plt.xlabel('Macroscopic strain %')
         plt.ylabel('Local Silicon Strain %')
+        plt.gca().set_xlim(left=0)
         plt.show()
         df.plot(x='StrainSi', y='Force', kind='scatter')
         plt.show()
