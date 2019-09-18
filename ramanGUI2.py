@@ -28,6 +28,7 @@ class RamanGUI(QMainWindow):
         
     def initUI(self):
         
+        self.homedir_init = r'S:\300-Projets_Transverses\300.56-Solflex\raman_data'  
         self.homedir = r'S:\300-Projets_Transverses\300.56-Solflex\raman_data'        
         self.crystalorientation = '110'
         self.ref_start = False
@@ -202,7 +203,7 @@ class RamanGUI(QMainWindow):
    
     def setHomeDir(self, event):
         self.homedir = QFileDialog.getExistingDirectory(self, "Open Directory", 
-        "C:/", QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        self.homedir_init, QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
         print(self.homedir)
         
     def openTDMS(self, event):
@@ -304,7 +305,10 @@ class RamanGUI(QMainWindow):
                         , 'Err_stress' : r_o.err_stress[iii]}, ignore_index=True)
             except:
                 r_o = rp.raman_spectrum(r_file,orientation=self.crystalorientation, ref_start=self.ref_start, ref_end=self.ref_end, ref_si=520.7-self.PowerShift)
-                eps_macro = 100*self.tdms_file.get_Elongation(r_o.epoch, r_o.duration)/(self.tdms_file.Length*1000)
+                if self.time_offset!= 0:
+                    eps_macro = 100*self.tdms_file.get_Elongation(r_o.epoch+self.time_offset, r_o.duration)/(self.tdms_file.Length*1000)                    
+                else:
+                    eps_macro = 100*self.tdms_file.get_Elongation(r_o.epoch, r_o.duration)/(self.tdms_file.Length*1000)
                 df = df.append({'Filename':r_o.filename
                     , 'Ref_si': r_o.ref_si
                     , 'Elongation': self.tdms_file.get_Elongation(r_o.epoch, r_o.duration)
@@ -320,25 +324,28 @@ class RamanGUI(QMainWindow):
                     , 'Err_stress' : r_o.err_stress}, ignore_index=True)
                 print(eps_macro)
         
-        
-        df.plot(x='StrainMacro',y='StrainSi',kind='scatter')
+        plt.figure()
+        plt.errorbar(df['StrainMacro'], df['StrainSi'],df['Err_strain']*3+0.05, marker='o', markerfacecolor='None', color='k')
+       # df.plot(x='StrainMacro',y='StrainSi', marker='v', markerfacecolor='None', color='k')
         plt.xlabel('Macroscopic strain %')
         plt.ylabel('Local Silicon Strain %')
         plt.gca().set_xlim(left=0)
+        plt.minorticks_on()
+        plt.title(self.tdms_file.filename)
         plt.show()
-        df.plot(x='StrainSi', y='Force', kind='scatter')
-        plt.show()
-        df.plot(x='StrainMacro',y='Force')
-        plt.show()
-        df.plot(x='Time',y='Elongation')
-        plt.show()
-        df.plot(x='Time', y='Force')
-        plt.show()
-        df.plot(x='StrainMacro',y='pCov',kind='scatter')
-        plt.show()
-        plt.figure()
-        plt.errorbar(df['StrainMacro'], df['StrainSi'],df['Err_strain'])
-        plt.show()
+#        df.plot(x='StrainSi', y='Force', kind='scatter')
+#        plt.show()
+#        df.plot(x='StrainMacro',y='Force')
+#        plt.show()
+#        df.plot(x='Time',y='Elongation')
+#        plt.show()
+#        df.plot(x='Time', y='Force')
+#        plt.show()
+#        df.plot(x='StrainMacro',y='pCov',kind='scatter')
+#        plt.show()
+#        plt.figure()
+#        plt.errorbar(df['StrainMacro'], df['StrainSi'],df['Err_strain'])
+#        plt.show()
         df.to_csv('results.txt', sep='\t')
 
    

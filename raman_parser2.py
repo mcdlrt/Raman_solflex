@@ -84,8 +84,17 @@ class raman_spectrum:
     def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, rejection=False, ref_start=False, ref_end=False, file_type='single', eps_range=False, cmap='coolwarm', orientation='110'):
         """init function
         Argx:
+            filename (string) = filepath for .txt raman spectrum file
             file_type (string, default='single') = type of scan ('single', 'xy_map', 'z_scan', 't_scan')
             orientation (string, default='110') = stress orientation ('110', '100','biax')
+            wn_min (float, default=490) = minimum wave number for peak fiting
+            wn_max (float, default=550) = max wave number for peak fiting
+            ref_si (float, default=520.7) = Raman shift value of reference silicon sample
+            rejection (boolean, default=False) = peak rejection, not implemented yet in this version
+            ref_start (string) = file path for .txt raman spectrum of reference sample at the beginning of the measurement
+            ref_end (string) = file path for .txt raman spectrum of reference sample at the end of the measurement
+            eps_range (list, default=False) = range for imshow cmap, to be implemented
+            cmap (string, default='coolwarm') = colormap for imshow of strain
         """
         self.filename = filename
         self.wn_min = wn_min

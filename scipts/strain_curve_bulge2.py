@@ -5,7 +5,7 @@ Created on Mon Jun 17 12:45:47 2019
 @author: LM254515
 """
 
-import raman_parser as rp
+import raman_parser2 as rp
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk
@@ -26,6 +26,9 @@ v_furu = 0.4        # poisson modulus
 E_bsi = 1.5e9 
 v_bsi = 0.4  
 t_bsi = 40e-6 
+
+ref_start = r''
+ref_end = r''
    
 def Y(E,v):
     """function to compute biaxial young modulus"""
@@ -40,7 +43,7 @@ def pressure(z,Y,t):
 
 r_obj = []
 for iii in np.arange(len(file_list)):
-    r_obj.append(rp.raman_mapping_xy(file_list[iii], wn_min=500, wn_max=540))       # raman mapping object
+    r_obj.append(rp.raman_spectrum(file_list[iii],file_type='xy_map',ref_start=ref_start, ref_end=ref_end))       # raman mapping object
     r_obj[iii].strain_biax()
     eps_biax[iii] = r_obj[iii].eps_biax_mean
     eps_biax_std[iii] = r_obj[iii].eps_biax_std
