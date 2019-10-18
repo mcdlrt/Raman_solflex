@@ -10,12 +10,12 @@ import pandas as pd
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
-dict_param = {'peak_pos':[[515,530],'Raman shift $cm^{-1}'],
-              'FWHM':[[1,3],'Silicon Raman peak FWHM $cm^{-1}'],
-              '110':[[-0.5,0.5],'Uniaxial strain along [110] direction %'],
-              '100':[[-0.5,0.5],'Uniaxial strain along [100] direction %'],
-              'biax':[[-0.5,0.5],'Biaxial strain %']}
-    
+dict_param = {'peak_pos':[[515, 530],'Raman shift $cm^{-1}'],
+              'FWHM':[[1, 3],'Silicon Raman peak FWHM $cm^{-1}'],
+              '110':[[-0.5, 0.5],'Uniaxial strain along [110] direction %'],
+              '100':[[-0.5, 0.5],'Uniaxial strain along [100] direction %'],
+              'biax':[[-0.5, 0.5],'Biaxial strain %']}
+
 def __calibration__(r_o):
     """Function that change wave number array according to reference shift in time
     Args:
@@ -26,7 +26,7 @@ def __calibration__(r_o):
         output ref values at given time t
         """
         return rs.peak_pos+(t-rs.epoch)*((re.peak_pos-rs.peak_pos)/(re.epoch-rs.epoch))
-    return (r_o.ref_si - ref(r_o.epoch, r_o.ref_start, r_o.ref_end))
+    return r_o.ref_si - ref(r_o.epoch, r_o.ref_start, r_o.ref_end)
 
 def __headersize__(filename):
     """return line index of last parameter in the header of any raman scan txt file
@@ -69,18 +69,18 @@ class raman_spectrum:
                      'z_scan':self.__z_scan__,
                      't_scan':self.__t_scan__}
         return init_type
-    
+
     def __header_attributes__(self):
         """ Set header parameter as attribute for the raman_spectrum object
         """
         for iii, param in enumerate(self.header.parameter):
-            try: 
-                setattr(self, param.strip('#').split(' ')[0].strip('.'), float(self.header.iloc[iii,1]))
+            try:
+                setattr(self, param.strip('#').split(' ')[0].strip('.'), float(self.header.iloc[iii, 1]))
             except ValueError:
-                setattr(self, param.strip('#').split(' ')[0].strip('.'), self.header.iloc[iii,1])
+                setattr(self, param.strip('#').split(' ')[0].strip('.'), self.header.iloc[iii, 1])
             except:
                 print('Parameter {:s} can not be set as attribute'.format(param))
-                
+
     def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, rejection=False, ref_start=False, ref_end=False, file_type='single', eps_range=False, cmap='coolwarm', orientation='110'):
         """init function
         Argx:
@@ -105,7 +105,7 @@ class raman_spectrum:
         self.eps_range = eps_range
         self.file_type = file_type
         self.orientation = orientation
-        if orientation =='110':
+        if orientation == '110':
             self.b_uni = -337
             self.E = 169 #young modulus in GPa
         elif orientation == '100':
@@ -146,14 +146,14 @@ class raman_spectrum:
     def __single__(self):
         """init for single spectrum
         """
-        try: 
+        try:
             self.data.columns = ['wn', 'counts']
-            self.wn = self.data.values[:,0] + self.dw
+            self.wn = self.data.values[:, 0] + self.dw
             self.id_min = np.argmax(self.wn > self.wn_min)
             self.id_max = np.argmin(self.wn < self.wn_max)
             self.x_fit = self.wn[self.id_min:self.id_max]
             [self.popt, self.pcov] = self.__fit__(self.data.counts.values[self.id_min:self.id_max] / self.Acq)
-            self.pcov_peak = self.pcov[0,0]
+            self.pcov_peak = self.pcov[0, 0]
             self.peak_pos = self.popt[0]
             self.intensity = self.popt[1]
             self.FWHM = 2*self.popt[2]
@@ -165,7 +165,7 @@ class raman_spectrum:
     def __xy_map__(self):
         """init for xy_map
         """
-        try: 
+        try:
             self.data.rename(columns={'Unnamed: 0':'x','Unnamed: 1':'y'}, inplace=True)
             self.data.rename(columns={c: float(c) for c in self.data.columns[2:]})
             wn = self.data.columns[2:]
@@ -211,7 +211,7 @@ class raman_spectrum:
             self.data.rename(columns={'Unnamed: 0':'z'}, inplace=True)
             wn = self.data.columns[1:]
             self.wn = np.array([float(jjj) for jjj in wn]) + self.dw
-            self.z = self.data.index
+            self.z = self.data.z.values
             self.id_min = np.argmax(self.wn > self.wn_min)
             self.id_max = np.argmin(self.wn < self.wn_max)
             self.x_fit = self.wn[self.id_min:self.id_max]
@@ -225,7 +225,7 @@ class raman_spectrum:
             self.peakwidth = np.zeros_like(self.z)*np.nan
             self.pcov_peak = np.zeros_like(self.z)*np.nan
         
-            for iii in np.arange(len(self.time)):
+            for iii in np.arange(len(self.z)):
                 [self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]], pcov = self.__fit__(self.data.values[iii, self.id_min:self.id_max]/self.Acq)
                 self.pcov_peak[iii] = pcov[0,0]
             self.FWHM = 2*self.peakwidth
@@ -257,7 +257,7 @@ class raman_spectrum:
             self.pcov_peak = np.zeros_like(self.time)*np.nan
         
             for iii in np.arange(len(self.time)):
-                [self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]], pcov = self.__fit__(self.data.values[iii, self.id_min:self.id_max]/self.Acq)
+                [self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]], pcov = self.__fit__(self.data.values[iii, self.id_min+1:self.id_max+1]/self.Acq)
                 self.pcov_peak[iii] = pcov[0,0]
  
             self.FWHM = 2*self.peakwidth
