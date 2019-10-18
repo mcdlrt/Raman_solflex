@@ -188,7 +188,7 @@ class raman_spectrum:
             for iii in np.arange(len(self.x)):
                 for jjj in np.arange(len(self.y)):
                     try:
-                        y_fit = self.data.values[iii*np.size(self.y)+jjj, self.id_min:self.id_max]/self.Acq
+                        y_fit = self.data.values[iii*np.size(self.y)+jjj, self.id_min+2:self.id_max+2]/self.Acq
                         [self.peak_pos[iii,jjj], self.intensity[iii,jjj], self.peakwidth[iii,jjj], self.baseline[iii,jjj]], pcov = self.__fit__(y_fit)
                         self.pcov_peak[iii,jjj] = pcov[0,0]
                     except:
@@ -226,7 +226,7 @@ class raman_spectrum:
             self.pcov_peak = np.zeros_like(self.z)*np.nan
         
             for iii in np.arange(len(self.z)):
-                [self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]], pcov = self.__fit__(self.data.values[iii, self.id_min:self.id_max]/self.Acq)
+                [self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]], pcov = self.__fit__(self.data.values[iii, self.id_min+1:self.id_max+1]/self.Acq)
                 self.pcov_peak[iii] = pcov[0,0]
             self.FWHM = 2*self.peakwidth
             self.strain = 100 * (self.peak_pos - self.ref_si)/self.b_uni
