@@ -79,9 +79,10 @@ class raman_spectrum:
             except ValueError:
                 setattr(self, param.strip('#').split(' ')[0].strip('.'), self.header.iloc[iii, 1])
             except:
-                print('Parameter {:s} can not be set as attribute'.format(param))
+                if (param !='Remark=') & (param != 'Site=') & (param != 'Project=') & (param != 'Sample='):
+                    print('Parameter {:s} can not be set as attribute'.format(param))
 
-    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, rejection=False, ref_start=False, ref_end=False, file_type='single', eps_range=False, cmap='coolwarm', orientation='110'):
+    def __init__(self, filename, wn_min=490, wn_max=550, ref_si=520.7, rejection=False, ref_start=False, ref_end=False, file_type='single', eps_range=False, cmap='coolwarm', orientation='110',mat='Si'):
         """init function
         Argx:
             filename (string) = filepath for .txt raman spectrum file
@@ -97,25 +98,35 @@ class raman_spectrum:
             cmap (string, default='coolwarm') = colormap for imshow of strain
         """
         self.filename = filename
-        self.wn_min = wn_min
-        self.wn_max = wn_max
-        self.ref_si = ref_si
         self.cmap = cmap
         self.hs = __headersize__(self.filename)
         self.eps_range = eps_range
         self.file_type = file_type
         self.orientation = orientation
-        if orientation == '110':
-            self.b_uni = -337
-            self.E = 169 #young modulus in GPa
-        elif orientation == '100':
-            self.b_uni = -250.6
-            self.E = 130
-        elif orientation == 'biax':
-            self.b_uni = -727
-            self.E = 180
-        else:
-            print('{:} is not a valid stress orientation'.format(orientation))
+        self.ref_si = ref_si
+        if mat=='Si':
+            self.wn_min = wn_min
+            self.wn_max = wn_max
+            self.p0=[520, 10, 1.5, 0.5] 
+            self.bounds_f=([500, 0, 0.5, 0], [525, 10000, 10, 100])
+            if orientation == '110':
+                self.b_uni = -337
+                self.E = 169 #young modulus in GPa
+            elif orientation == '100':
+                self.b_uni = -250.6
+                self.E = 130
+            elif orientation == 'biax':
+                self.b_uni = -727
+                self.E = 180
+            else:
+                print('{:} is not a valid stress orientation'.format(orientation))
+        elif mat =='AlN':
+            self.wn_min = 550
+            self.wn_max = 750
+            self.b_uni = -337 #TO BE DETERMINED
+            self.E = 169 #young modulus in GPa TO BE DETERMINED
+            self.p0=[655, 10, 1.5, 0.5] 
+            self.bounds_f=([630, 0, 0.5, 0], [680, 10000, 10, 100])
         try:
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t')
             self.header = pd.read_csv(self.filename,
@@ -274,23 +285,26 @@ class raman_spectrum:
         plt.ylabel('Counts/s')
         plt.minorticks_on()
         if self.file_type == 'single':
-            plt.scatter(self.x_fit,self.data.counts.values[self.id_min:self.id_max]/self.Acq, facecolors='none', edgecolors='r')
-            plt.plot(self.x_fit,__lorentzian__(self.x_fit,self.popt[0], self.popt[1], self.popt[2], self.popt[3]))
+            plt.scatter(self.x_fit,self.data.counts.values[self.id_min:self.id_max]/self.Acq, marker='.')
+            #plt.scatter(self.x_fit,self.data.counts.values[self.id_min:self.id_max]/self.Acq, facecolors='none', edgecolors='k')
+            plt.plot(self.x_fit,__lorentzian__(self.x_fit,self.popt[0], self.popt[1], self.popt[2], self.popt[3]),color='k')
             
         else:
             for iii in np.arange(len(self.peak_pos)):
-                plt.scatter(self.x_fit,self.data.values[iii,self.id_min:self.id_max]/self.Acq, facecolors='none', edgecolors='r')
-                plt.plot(self.x_fit,__lorentzian__(self.x_fit,self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]))
+                #plt.scatter(self.x_fit,self.data.values[iii,self.id_min:self.id_max]/self.Acq, facecolors='none', edgecolors='r')
+                plt.scatter(self.x_fit,self.data.values[iii,self.id_min:self.id_max]/self.Acq, marker='.')
+                plt.plot(self.x_fit,__lorentzian__(self.x_fit,self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]),color='k')
         plt.ylim(bottom=0)
         plt.show()
 
     def __fit__(self, y_fit_el, p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [525, 10000, 10, 100])):
+        #default value for p0 and bounds are useless
         try:
             [popt,pcov] = curve_fit(__lorentzian__,
                                 self.x_fit,
                                 y_fit_el,
-                                p0=p0,
-                                bounds=bounds_f)
+                                p0=self.p0,
+                                bounds=self.bounds_f)
             return popt, pcov
         except:
             print('fit error')
