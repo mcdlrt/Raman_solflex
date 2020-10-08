@@ -58,6 +58,10 @@ def __lorentzian__(x, x0, a, gam, c):
     """
     return a * gam**2/(gam**2 +(x-x0)**2)+c
 
+def __DoubleLorentzian__(x, x01, a1, gam1,c, x02, a2, gam2):
+    """function used for the fit of two lorentzian functions
+    """
+    return a1 * gam1**2/(gam1**2 +(x-x01)**2)+c + a2 * gam2**2/(gam2**2 +(x-x02)**2)
 class raman_spectrum:
     """ Raman class for all types of scan (single, xy, z, timescan)
     """
@@ -104,19 +108,20 @@ class raman_spectrum:
         self.file_type = file_type
         self.orientation = orientation
         self.ref_si = ref_si
+        self.mat = mat
         if mat=='Si':
             self.wn_min = wn_min
             self.wn_max = wn_max
             self.p0=[520, 10, 1.5, 0.5] 
             self.bounds_f=([500, 0, 0.5, 0], [525, 10000, 10, 100])
             if orientation == '110':
-                self.b_uni = -337
+                self.b_uni = -337 #doi: 10.1063/1.2178396
                 self.E = 169 #young modulus in GPa
             elif orientation == '100':
                 self.b_uni = -250.6
                 self.E = 130
             elif orientation == 'biax':
-                self.b_uni = -727
+                self.b_uni = -723 # doi: 10.1063/1.2178396 #-727 --> anicenne valeur utilisée
                 self.E = 180
             else:
                 print('{:} is not a valid stress orientation'.format(orientation))
@@ -125,8 +130,10 @@ class raman_spectrum:
             self.wn_max = 750
             self.b_uni = -337 #TO BE DETERMINED
             self.E = 169 #young modulus in GPa TO BE DETERMINED
-            self.p0=[655, 10, 1.5, 0.5] 
-            self.bounds_f=([630, 0, 0.5, 0], [680, 10000, 10, 100])
+            #self.p0=[655, 10, 1.5, 0.5]  #in case we want to go back to a single lorentzian --> uncoment this line and the folowing one + chnage the fit function for mat == 'AlN'
+            #self.bounds_f=([630, 0, 0.5, 0], [680, 10000, 10, 100])
+            self.p0=[655, 10, 1.5, 0.5, 635, 3, 1.5]
+            self.bounds_f=([640, 0, 0.5, 0, 632, 0, 0.5], [680, 10000, 10, 100, 640, 10000, 10 ])
         try:
             self.data = pd.read_csv(self.filename, header=self.hs, sep='\t')
             self.header = pd.read_csv(self.filename,
@@ -270,6 +277,7 @@ class raman_spectrum:
             for iii in np.arange(len(self.time)):
                 [self.peak_pos[iii], self.intensity[iii], self.peakwidth[iii], self.baseline[iii]], pcov = self.__fit__(self.data.values[iii, self.id_min+1:self.id_max+1]/self.Acq)
                 self.pcov_peak[iii] = pcov[0,0]
+
  
             self.FWHM = 2*self.peakwidth
             self.strain = 100 * (self.peak_pos - self.ref_si)/self.b_uni
@@ -299,16 +307,28 @@ class raman_spectrum:
 
     def __fit__(self, y_fit_el, p0=[520, 10, 1.5, 0.5], bounds_f=([500, 1, 0.5, 0], [525, 10000, 10, 100])):
         #default value for p0 and bounds are useless
-        try:
-            [popt,pcov] = curve_fit(__lorentzian__,
-                                self.x_fit,
-                                y_fit_el,
-                                p0=self.p0,
-                                bounds=self.bounds_f)
-            return popt, pcov
-        except:
-            print('fit error')
-            return [np.nan, np.nan, np.nan, np.nan], np.zeros([4,4])*np.nan
+        if self.mat == 'AlN':
+            try:
+                [popt,pcov] = curve_fit(__DoubleLorentzian__,
+                                    self.x_fit,
+                                    y_fit_el,
+                                    p0=self.p0,
+                                    bounds=self.bounds_f)
+                return popt[0:4], pcov
+            except:
+                print('fit error')
+                return [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan], np.zeros([7,7])*np.nan
+        else:
+            try:
+                [popt,pcov] = curve_fit(__lorentzian__,
+                                    self.x_fit,
+                                    y_fit_el,
+                                    p0=self.p0,
+                                    bounds=self.bounds_f)
+                return popt, pcov
+            except:
+                print('fit error')
+                return [np.nan, np.nan, np.nan, np.nan], np.zeros([4,4])*np.nan
     def __set_vmin_vmax__(self, param):
         """ Center vmin and vmax of current plot"""
         im = plt.gca().get_images()[0]
